@@ -107,7 +107,7 @@ def calcular_score(row):
 # Execução
 # -------------------------------
 
-def main():
+def resultado():
     try:
         df = carregar_fundamentus()
         df = renomear_colunas(df)
@@ -116,14 +116,12 @@ def main():
         df = corrigir_cotacoes(df)
         df["score"] = df.apply(calcular_score, axis=1)
         df_ranked = df.sort_values("score", ascending=False).reset_index(drop=True)
-
-        # Salvar
-        output_path = "fundamentus_ranking_corrigido.csv"
-        df_ranked.to_csv(output_path, index=False, encoding="utf-8-sig")
-        print(f"✅ Arquivo salvo: {output_path}")
-        print(df_ranked[["papel", "score", "psr", "p_ativo"]].head(10))
+    
+        return df_ranked
     except Exception as e:
-        print(f"❌ Erro: {e}")
+        print(f"❌ Erro ao processar os dados: {e}")
+        return pd.DataFrame()
 
-if __name__ == "__main__":
-    main()
+
+#if __name__ == "__main__":
+#    main()

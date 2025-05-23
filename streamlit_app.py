@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from processar_fundamentus import resultado
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
@@ -10,7 +11,7 @@ st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 # --- Dados
 @st.cache_data
 def carregar_dados():
-    return pd.read_csv("fundamentus_ranking_corrigido.csv")
+    return resultado()
 
 df = carregar_dados()
 
