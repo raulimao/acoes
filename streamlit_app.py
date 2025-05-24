@@ -16,33 +16,60 @@ from database import add_user, get_user, initialize_database
 # Inicializa banco de dados
 initialize_database()
 
-# --- Configurações da Página ---
+# --- Configurações da Página e Autenticação ---
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
-# The main conditional logic now depends on the values returned by authenticator.login()
+# Carrega configurações do config.yaml
+with open('config.yaml') as file:
+ config = yaml.load(file, Loader=yaml.Loader)
+
+# Busca todos os usuários do banco de dados para popular o autenticador
+conn, cursor = initialize_database()
+cursor.execute("SELECT username, name, email, password FROM users")
+users_data = cursor.fetchall()
+conn.close()
+
+credentials = {"usernames": {}}
+for user in users_data:
+ username, name, email, hashed_password = user
+ credentials["usernames"][username] = {"name": name, "email": email, "password": hashed_password.decode('utf-8')}
+
+# Configura o autenticador
+authenticator = stauth.Authenticate(
+ credentials,
+ config['cookie']['name'],
+ config['cookie']['key'],
+ config['cookie']['expiry_days']
+)
+
+# Realiza o login
+name, authentication_status, username = authenticator.login()
+
+# --- Lógica Condicional Baseada no Status de Autenticação ---
 if authentication_status:
-    st.title(f'Bem vindo {name}!')
-    if st.sidebar.button("Logout"):
-        authenticator.logout()
-        st.rerun()
+ # --- Conteúdo Autenticado ---
+ st.title(f'Bem vindo {name}!')
+ if st.sidebar.button("Logout"):
+ authenticator.logout()
+ st.rerun()
 
-    df = resultado()
+ df = resultado()
 
-    # --- Filtros ---
+ # --- Filtros ---
     st.sidebar.header("🔎 Filtros")
-    with st.sidebar.expander("🎯 Filtros de Pontuação", expanded=True):
-        min_score = st.slider("Score mínimo", 0, 100, 60)
-        max_score = st.slider("Score máximo", 0, 100, 100)
-        df_filtrado = df[(df["score"] >= min_score) & (df["score"] <= max_score)]
+ with st.sidebar.expander("🎯 Filtros de Pontuação", expanded=True):
+ min_score = st.slider("Score mínimo", 0, 100, 60)
+ max_score = st.slider("Score máximo", 0, 100, 100)
+ df_filtrado = df[(df["score"] >= min_score) & (df["score"] <= max_score)]
 
-    with st.sidebar.expander("📊 Ordenação"):
-        coluna_numerica = df.select_dtypes(include=np.number).columns.tolist()
-        coluna_ordenacao = st.selectbox("Ordenar por", coluna_numerica, index=coluna_numerica.index("score") if "score" in coluna_numerica else 0)
-        ordem = st.radio("Ordem", ["Decrescente", "Crescente"], horizontal=True)
-        crescente = ordem == "Crescente"
-        df_filtrado = df_filtrado.sort_values(by=coluna_ordenacao, ascending=crescente)
+ with st.sidebar.expander("📊 Ordenação"):
+ coluna_numerica = df.select_dtypes(include=np.number).columns.tolist()
+ coluna_ordenacao = st.selectbox("Ordenar por", coluna_numerica, index=coluna_numerica.index("score") if "score" in coluna_numerica else 0)
+ ordem = st.radio("Ordem", ["Decrescente", "Crescente"], horizontal=True)
+ crescente = ordem == "Crescente"
+ df_filtrado = df_filtrado.sort_values(by=coluna_ordenacao, ascending=crescente)
 
-    with st.sidebar.expander("📈 Seleção de Ações"):
+ with st.sidebar.expander("📈 Seleção de Ações"):
         setores = sorted(df["papel"].str[:4].unique())  # exemplo genérico
         prefixos = st.multiselect("Filtrar prefixo (ex: VALE, PETR)", setores)
         if prefixos:
@@ -95,14 +122,14 @@ if authentication_status:
                 with st.expander(f"📈 {label}"):
                     if tipo_grafico == "Boxplot":
                         fig = px.box(df_filtrado, y=col, points="outliers", title=label)
-                    else:
-                        fig = px.histogram(df_filtrado, x=col, nbins=30, title=label)
-                    fig.update_layout(yaxis_type="linear" if escala == "Linear" else "log")
-                    st.plotly_chart(fig, use_container_width=True)
+ else:
+ fig = px.histogram(df_filtrado, x=col, nbins=30, title=label)
+ fig.update_layout(yaxis_type="linear" if escala == "Linear" else "log")
+ st.plotly_chart(fig, use_container_width=True)
 
-    # --- Tab 3: Comparar Ativos ---
-    with tab3:
-        ativos_selecionados = st.multiselect("Escolha até 5 papéis para comparar", df_filtrado["papel"].unique(), max_selections=5)
+ # --- Tab 3: Comparar Ativos ---
+ with tab3:
+ ativos_selecionados = st.multiselect("Escolha até 5 papéis para comparar", df_filtrado["papel"].unique(), max_selections=5)
 
         if ativos_selecionados:
             colunas_radar = ["p_l", "p_vp", "psr", "dividend_yield", "roe", "roic"]
