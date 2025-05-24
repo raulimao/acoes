@@ -44,7 +44,9 @@ authenticator = stauth.Authenticate(
     credentials,
     config["cookie"]["name"],
     config["cookie"]["key"],
-    config["cookie"]["expiry_days"]
+    config["cookie"]["expiry_days"],
+    cookie_expiry_days=config["cookie"]["expiry_days"],
+    clear_on_logout=True
 )
 
 # --- Login ---
@@ -53,6 +55,7 @@ name, authentication_status, username = authenticator.login(location="sidebar")
 # --- Status de login ---
 if authentication_status is False:
     st.error("Usuário/Senha inválido!")
+
 elif authentication_status is None:
     st.warning("Por favor, insira usuário e senha.")
     with st.expander("👤 Criar novo usuário"):
@@ -73,8 +76,11 @@ elif authentication_status is None:
 # --- Usuário autenticado ---
 if authentication_status:
     st.title(f"Bem-vindo, {name}!")
+
+    # Logout funcional
     if st.sidebar.button("Logout", key="logout_button"):
         authenticator.logout(location="sidebar")
+        st.success("Logout realizado.")
         st.rerun()
 
     df = resultado()
