@@ -45,7 +45,7 @@ conn.close()
 credentials = {"usernames": {}}
 for user in users_data:
     username, name, email, hashed_password = user
-    credentials["usernames"][username] = {"name": name, "email": email, "password": hashed_password}
+    credentials["usernames"][username] = {"name": name, "email": email, "password": hashed_password.decode('utf-8')}
 
 authenticator = stauth.Authenticate(
     credentials,
