@@ -20,9 +20,14 @@ initialize_database()
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
 # --- Carrega config.yaml ---
-with open('config.yaml') as file:
-    config = yaml.load(file, Loader=yaml.Loader)
-
+try:
+    with open('config.yaml') as file:
+        config = yaml.load(file, Loader=yaml.Loader)
+except FileNotFoundError:
+    st.error("Erro: Arquivo config.yaml não encontrado. Certifique-se de que o arquivo está na raiz do projeto.")
+    st.stop()
+except yaml.YAMLError:
+    st.error("Erro: O arquivo config.yaml contém um erro de sintaxe YAML. Verifique a formatação.")
 # --- Prepara dados dos usuários salvos no banco ---
 conn, cursor = initialize_database()
 cursor.execute("SELECT username, name, email, password FROM users")
