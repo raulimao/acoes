@@ -7,6 +7,11 @@ from processar_fundamentus import resultado
 from src.chat import mensagem_cli
 from gtts import gTTS
 import streamlit_authenticator as stauth
+import yaml
+
+# Load config file to get cookie settings
+with open('config.yaml') as file:
+    config = yaml.load(file, Loader=yaml.Loader)
 from database import add_user, get_user, initialize_database
 initialize_database()
 
