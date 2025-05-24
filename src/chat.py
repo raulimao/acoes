@@ -11,7 +11,7 @@ def chat_with_groq(messages: list) -> str:
     }
     system_prompt = {"role": "system", "content": "Você é um gerente de conta que responde sempre em português do Brasil, e que entende tudo de investimento, e com os dados fornecidos, você ira atuar em suas respostas."}
     data = {
-        "model": "deepseek-r1-distill-llama-70b",
+        "model": "meta-llama/llama-4-maverick-17b-128e-instruct",
         "messages": [system_prompt] + messages
     }
     response = requests.post(url, headers=headers, json=data)
