@@ -18,8 +18,8 @@ st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
 authenticator = stauth.Authenticate(
     config['credentials'],
-    config['cookie']['name']
-    config['cookie']['key']
+    config['cookie']['name'],
+    config['cookie']['key'],
     config['cookie']['expire_days']
 )
 
