@@ -44,9 +44,6 @@ streamlit run streamlit_app.py
 Ou acesse diretamente pelo Streamlit Cloud:
 👉 [Acessar o Dashboard](https://h9aj34hulirujnukbubacg.streamlit.app)
 
-## 📸 Demonstração
-
-![demo](https://github.com/raulimao/acoes/assets/demo-screenshot.png)
 
 ## 📈 Score dos Ativos
 
