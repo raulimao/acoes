@@ -166,7 +166,7 @@ if st.session_state['authentication_status']:
                 st.write(f"Auxilia AI: {resposta}")
                 tts = gTTS(text=resposta, lang='pt-br')  # pt-br garante sotaque brasileiro
                 tts.save("audio.mp3")
-                st.audio("audio.mp3", format="audio/mp3")~
+                st.audio("audio.mp3", format="audio/mp3")
 
 elif st.session_state["authentication_status"] is False:
     st.error('Usuário/Senha é invalido!')
