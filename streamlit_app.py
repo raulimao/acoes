@@ -41,7 +41,7 @@ for user in users_data:
         "password": hashed_password.decode('utf-8')
     }
 
-# --- Autenticação ---
+# Autenticação
 authenticator = stauth.Authenticate(
     credentials,
     config['cookie']['name'],
@@ -49,8 +49,8 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
-# ⚠️ Corrigir esta linha:
-name, authentication_status, username = authenticator.login("Login", "main")
+# Login (com o formulário na barra lateral)
+name, authentication_status, username = authenticator.login("Login", location="sidebar")
 
 # --- Condicional baseada em autenticação ---
 if authentication_status is False:
