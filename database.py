@@ -6,7 +6,9 @@ def connect_db():
     conn = sqlite3.connect('users.db')
     return conn
 
-def create_users_table():
+def initialize_database():
+    """Initialize the database and create the users table if it doesn't exist.
+    Returns the database connection and cursor."""
     conn = connect_db()
     c = conn.cursor()
     c.execute('''
@@ -18,7 +20,7 @@ def create_users_table():
         )
     ''')
     conn.commit()
-    conn.close()
+    return conn, c
 
 def close_db(conn):
     """Close the database connection"""
