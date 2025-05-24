@@ -4,6 +4,7 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from processar_fundamentus import resultado
+from src.chat import mensagem_cli
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
@@ -98,3 +99,22 @@ with tab3:
             showlegend=True
         )
         st.plotly_chart(fig, use_container_width=True)
+
+# Auxiliar AI (Chatbot)
+with st.expander("Auxilia AI"):
+    # Entrada do usuário para interação com o chatbot
+    prompt = st.chat_input("Escreva alguma coisa")
+    
+    if prompt:
+        if 'base' in prompt:
+            # Substitui a palavra 'base' pela representação em string do DataFrame
+            df_texto = df.to_string(index=False)
+            prompt = prompt.replace('base', df_texto)
+        
+        # Exibe a mensagem do usuário
+        st.write(f"Usuario: {prompt}")
+        
+        # Gera a resposta do chatbot e a exibe
+        resposta = mensagem_cli(prompt)
+        if resposta:
+            st.write(f"Auxilia AI: {resposta}")
