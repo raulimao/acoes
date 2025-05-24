@@ -5,6 +5,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from processar_fundamentus import resultado
 from src.chat import mensagem_cli
+from gtts import gTTS
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
@@ -128,3 +129,6 @@ with st.expander("Auxilia AI"):
         resposta = mensagem_cli(prompt)
         if resposta:
             st.write(f"Auxilia AI: {resposta}")
+            tts = gTTS(text=resposta, lang='pt-br')  # pt-br garante sotaque brasileiro
+            tts.save("audio.mp3")
+            st.audio("audio.mp3", format="audio/mp3")

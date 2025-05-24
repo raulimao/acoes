@@ -6,3 +6,4 @@ lxml
 streamlit
 plotly
 python-dotenv
+gTTS
