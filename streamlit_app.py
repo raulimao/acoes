@@ -45,13 +45,36 @@ with tab1:
 
 # --- Tab 2: Indicadores
 with tab2:
-    indicadores = ["p_l", "p_vp", "psr", "dividend_yield", "roe", "roic"]
-    st.subheader("Distribuição de Indicadores")
+    st.subheader("📊 Análise de Indicadores Fundamentais")
+    st.markdown("Explore a distribuição dos principais indicadores para as ações filtradas:")
 
-    for indicador in indicadores:
-        with st.expander(f"📌 {indicador.upper()}"):
-            fig = px.box(df_filtrado, y=indicador, title=f"Distribuição de {indicador.upper()}")
-            st.plotly_chart(fig, use_container_width=True)
+    indicadores = {
+        "p_l": "P/L (Preço / Lucro)",
+        "p_vp": "P/VP (Preço / Valor Patrimonial)",
+        "psr": "PSR (Preço / Receita)",
+        "dividend_yield": "Dividend Yield (%)",
+        "roe": "ROE (%)",
+        "roic": "ROIC (%)"
+    }
+
+    tipo_grafico = st.radio("Escolha o tipo de gráfico:", ["Boxplot", "Histograma"], horizontal=True)
+    escala = st.selectbox("Escala do eixo Y:", ["Linear", "Logarítmica"])
+
+    col1, col2 = st.columns(2)
+
+    for i, (col, label) in enumerate(indicadores.items()):
+        container = col1 if i % 2 == 0 else col2
+        with container:
+            with st.expander(f"📈 {label}"):
+                if tipo_grafico == "Boxplot":
+                    fig = px.box(df_filtrado, y=col, points="outliers", title=label)
+                else:
+                    fig = px.histogram(df_filtrado, x=col, nbins=30, title=label)
+
+                fig.update_layout(yaxis_type="linear" if escala == "Linear" else "log")
+                fig.update_layout(margin=dict(l=20, r=20, t=30, b=20))
+                st.plotly_chart(fig, use_container_width=True)
+
 
 # --- Tab 3: Comparar Ativos
 with tab3:
