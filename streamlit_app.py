@@ -11,7 +11,7 @@ import yaml
 from yaml.loader import SafeLoader
 
 with open('config.yaml') as file:
-    config = yaml.load(file,loder=SafeLoader)
+    config = yaml.load(file,Loader=SafeLoader)
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
