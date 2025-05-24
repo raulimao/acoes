@@ -11,8 +11,8 @@ import streamlit_authenticator as stauth
 import yaml
 from database import add_user, get_user, initialize_database
 
+# --- Configura logs ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 
 # --- Configuração da Página ---
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
@@ -22,11 +22,13 @@ try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=yaml.Loader)
 except FileNotFoundError:
-    st.error("Erro: Arquivo config.yaml não encontrado. Certifique-se de que o arquivo está na raiz do projeto.")
+    st.error("Erro: Arquivo config.yaml não encontrado.")
     st.stop()
 except yaml.YAMLError:
-    st.error("Erro: O arquivo config.yaml contém um erro de sintaxe YAML. Verifique a formatação.")
-# --- Prepara dados dos usuários salvos no banco ---
+    st.error("Erro: O arquivo config.yaml tem erro de sintaxe.")
+    st.stop()
+
+# --- Inicializa banco e carrega usuários ---
 conn, cursor = initialize_database()
 cursor.execute("SELECT username, name, email, password FROM users")
 users_data = cursor.fetchall()
@@ -38,10 +40,10 @@ for user in users_data:
     credentials["usernames"][username] = {
         "name": name,
         "email": email,
-        "password": hashed_password.decode('utf-8')
+        "password": hashed_password.decode('utf-8') if isinstance(hashed_password, bytes) else hashed_password
     }
 
-# Autenticação
+# --- Autenticação ---
 authenticator = stauth.Authenticate(
     credentials,
     config['cookie']['name'],
@@ -49,16 +51,15 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
-# Login (com o formulário na barra lateral)
-name, authentication_status, username = authenticator.login(title="Login", location="sidebar")
+name, authentication_status, username = authenticator.login("Login", "sidebar")
 
-# --- Condicional baseada em autenticação ---
+# --- Tratamento de login ---
 if authentication_status is False:
-    st.error('Usuário/Senha é inválido!')
+    st.error('Usuário/Senha inválidos!')
 
 elif authentication_status is None:
-    st.warning('Por favor, insira o usuário e senha!')
-    # --- Cadastro de Novo Usuário (visível apenas quando não autenticado) ---
+    st.warning('Por favor, insira usuário e senha.')
+
     with st.expander("👤 Criar novo usuário"):
         new_username = st.text_input("Usuário")
         new_name = st.text_input("Nome completo")
@@ -73,11 +74,11 @@ elif authentication_status is None:
                 st.error("Usuário já existe!")
             else:
                 add_user(new_username, new_name, new_email, new_password)
-                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
+                st.success("Usuário criado com sucesso! Atualize a página para login.")
 
-# --- Conteúdo Autenticado (visível apenas quando autenticado) ---
+# --- Dashboard principal ---
 if authentication_status:
-    st.title(f'Bem vindo {name}!')
+    st.title(f'Bem-vindo, {name}!')
     if st.sidebar.button("Logout"):
         authenticator.logout()
         st.rerun()
@@ -92,8 +93,8 @@ if authentication_status:
         df_filtrado = df[(df["score"] >= min_score) & (df["score"] <= max_score)]
 
     with st.sidebar.expander("📊 Ordenação"):
-        coluna_numerica = df.select_dtypes(include=np.number).columns.tolist()
-        coluna_ordenacao = st.selectbox("Ordenar por", coluna_numerica, index=coluna_numerica.index("score") if "score" in coluna_numerica else 0)
+        colunas_numericas = df.select_dtypes(include=np.number).columns.tolist()
+        coluna_ordenacao = st.selectbox("Ordenar por", colunas_numericas, index=colunas_numericas.index("score") if "score" in colunas_numericas else 0)
         ordem = st.radio("Ordem", ["Decrescente", "Crescente"], horizontal=True)
         crescente = ordem == "Crescente"
         df_filtrado = df_filtrado.sort_values(by=coluna_ordenacao, ascending=crescente)
@@ -107,28 +108,26 @@ if authentication_status:
     with st.sidebar.expander("🔝 Exibição"):
         top_n = st.slider("Top N ativos", 5, 100, 10)
 
-    # --- Layout Principal ---
     st.title("📊 Dashboard Fundamentus")
     st.markdown(f"Exibindo **{len(df_filtrado)}** ativos com score ≥ **{min_score}**")
 
     tab1, tab2, tab3 = st.tabs(["📈 Visão Geral", "📊 Indicadores", "📌 Comparar Ativos"])
 
+    # --- Tab 1 ---
     with tab1:
         st.subheader("Top ações por score")
         st.dataframe(df_filtrado.head(top_n), use_container_width=True)
-
         col1, col2 = st.columns(2)
         with col1:
             fig = px.histogram(df_filtrado, x="score", nbins=20, title="Distribuição dos Scores")
             st.plotly_chart(fig, use_container_width=True)
-
         with col2:
             fig = px.bar(df_filtrado.head(top_n), x="papel", y="score", title="Top ações por Score", text="score", color="score")
             st.plotly_chart(fig, use_container_width=True)
 
+    # --- Tab 2 ---
     with tab2:
         st.subheader("📊 Análise de Indicadores Fundamentais")
-
         indicadores = {
             "p_l": "P/L (Preço / Lucro)",
             "p_vp": "P/VP (Preço / Valor Patrimonial)",
@@ -137,10 +136,8 @@ if authentication_status:
             "roe": "ROE (%)",
             "roic": "ROIC (%)"
         }
-
-        tipo_grafico = st.radio("Escolha o tipo de gráfico:", ["Boxplot", "Histograma"], horizontal=True)
+        tipo_grafico = st.radio("Tipo de gráfico:", ["Boxplot", "Histograma"], horizontal=True)
         escala = st.selectbox("Escala do eixo Y:", ["Linear", "Logarítmica"])
-
         col1, col2 = st.columns(2)
         for i, (col, label) in enumerate(indicadores.items()):
             container = col1 if i % 2 == 0 else col2
@@ -153,32 +150,25 @@ if authentication_status:
                     fig.update_layout(yaxis_type="linear" if escala == "Linear" else "log")
                     st.plotly_chart(fig, use_container_width=True)
 
+    # --- Tab 3 ---
     with tab3:
-        ativos_selecionados = st.multiselect("Escolha até 5 papéis para comparar", df_filtrado["papel"].unique(), max_selections=5)
-        if ativos_selecionados:
-            colunas_radar = ["p_l", "p_vp", "psr", "dividend_yield", "roe", "roic"]
-            df_radar = df_filtrado[df_filtrado["papel"].isin(ativos_selecionados)][["papel"] + colunas_radar].set_index("papel")
-
+        st.subheader("📌 Comparação de Ativos")
+        ativos = st.multiselect("Escolha até 5 papéis", df_filtrado["papel"].unique(), max_selections=5)
+        if ativos:
+            radar_cols = ["p_l", "p_vp", "psr", "dividend_yield", "roe", "roic"]
+            df_radar = df_filtrado[df_filtrado["papel"].isin(ativos)][["papel"] + radar_cols].set_index("papel")
             fig = go.Figure()
             for papel in df_radar.index:
                 fig.add_trace(go.Scatterpolar(
                     r=df_radar.loc[papel].values,
-                    theta=colunas_radar,
+                    theta=radar_cols,
                     fill='toself',
                     name=papel
                 ))
-            fig.update_layout(
-                polar=dict(radialaxis=dict(visible=True)),
-                title="Comparação de Indicadores",
-                showlegend=True
-            )
+            fig.update_layout(polar=dict(radialaxis=dict(visible=True)), showlegend=True)
             st.plotly_chart(fig, use_container_width=True)
 
-# --- Auxilia AI (Mova para dentro do bloco autenticado se quiser que só apareça após login) ---
-# Se o chatbot for um recurso premium, mantenha-o dentro do if authentication_status:
-# Se for um recurso público, mova-o para fora dos blocos condicionais de autenticação.
-# Pelo contexto, parece ser um recurso premium, então mantive a estrutura atual.
-# Se precisar mover, me diga!
+    # --- Chatbot Auxiliar ---
     def extrair_papeis(prompt, df):
         papeis_disponiveis = df["papel"].str.upper().tolist()
         return [p for p in papeis_disponiveis if p in prompt.upper()]
@@ -188,15 +178,13 @@ if authentication_status:
         return dados.to_dict(orient="records")
 
     with st.expander("🧠 Auxilia AI"):
-        prompt = st.chat_input("Escreva alguma coisa")
+        prompt = st.chat_input("Digite uma pergunta sobre um ativo:")
         prompt_aux = prompt
-
         if prompt:
-            papeis_encontrados = extrair_papeis(prompt, df)
-            if papeis_encontrados:
-                dados = montar_contexto_para_papeis(papeis_encontrados, df)
+            papeis = extrair_papeis(prompt, df)
+            if papeis:
+                dados = montar_contexto_para_papeis(papeis, df)
                 prompt = f"{prompt} com esses dados: {dados}"
-
             st.write(f"Usuário: {prompt_aux}")
             resposta = mensagem_cli(prompt)
             if resposta:
