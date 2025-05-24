@@ -109,8 +109,8 @@ with st.expander("Auxilia AI"):
     if prompt:
         if 'base' in prompt:
             # Substitui a palavra 'base' pela representação em string do DataFrame
-            df_texto = df.to_string(index=False)
-            prompt = prompt.replace('base', df_texto)
+            json_str = df.to_json(orient="records")
+            prompt = prompt.replace('base', json_str)
         
         # Exibe a mensagem do usuário
         st.write(f"Usuario: {prompt_aux}")
