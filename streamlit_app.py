@@ -48,7 +48,7 @@ authenticator = stauth.Authenticate(
 )
 
 # --- Login ---
-name, authentication_status, username = authenticator.login(location="sidebar")
+name, authentication_status, username = authenticator.login(form_name="Login", location="sidebar")
 
 # --- Status de login ---
 if authentication_status is False:
