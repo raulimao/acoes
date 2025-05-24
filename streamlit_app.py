@@ -20,8 +20,8 @@ initialize_database()
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 # This block should remain before the authenticator.login() call
-# Only display the create user section if not authenticated
-if st.session_state["authentication_status"] is None or st.session_state["authentication_status"] is False:
+# Only display the create user section if authentication_status is not set or is False
+if 'authentication_status' not in st.session_state or st.session_state["authentication_status"] is None or st.session_state["authentication_status"] is False:
     with st.expander("👤 Criar novo usuário"):
         new_username = st.text_input("Usuário")
         new_name = st.text_input("Nome completo")
