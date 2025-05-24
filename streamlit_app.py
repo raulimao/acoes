@@ -1,3 +1,5 @@
+import logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -60,6 +62,7 @@ authenticator.login()
 
 if st.session_state['authentication_status']:
     authenticator.logout()
+    st.rerun()
     st.title(f'Bem vindo {st.session_state["name"]}!')
     # --- Dados
     @st.cache_data
