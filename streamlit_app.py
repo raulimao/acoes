@@ -50,7 +50,7 @@ authenticator = stauth.Authenticate(
 )
 
 # Login (com o formulário na barra lateral)
-name, authentication_status, username = authenticator.login("Login", location="sidebar")
+name, authentication_status, username = authenticator.login(title="Login", location="sidebar")
 
 # --- Condicional baseada em autenticação ---
 if authentication_status is False:
