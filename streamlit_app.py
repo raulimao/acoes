@@ -11,6 +11,10 @@ from gtts import gTTS
 import streamlit_authenticator as stauth
 import yaml
 
+# Initialize authentication status in session state if it doesn't exist
+if 'authentication_status' not in st.session_state:
+    st.session_state['authentication_status'] = None
+
 # Load config file to get cookie settings
 with open('config.yaml') as file:
     config = yaml.load(file, Loader=yaml.Loader)
