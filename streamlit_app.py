@@ -11,10 +11,6 @@ from gtts import gTTS
 import streamlit_authenticator as stauth
 import yaml
 
-# Initialize authentication status in session state if it doesn't exist
-if 'authentication_status' not in st.session_state:
-    st.session_state['authentication_status'] = None
-
 # Load config file to get cookie settings
 with open('config.yaml') as file:
     config = yaml.load(file, Loader=yaml.Loader)
@@ -23,7 +19,7 @@ initialize_database()
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
-
+# This block should remain before the authenticator.login() call
 # Only display the create user section if not authenticated
 if st.session_state["authentication_status"] is None or st.session_state["authentication_status"] is False:
     with st.expander("👤 Criar novo usuário"):
@@ -63,12 +59,17 @@ authenticator = stauth.Authenticate(
 )
 
 name, authentication_status, username = authenticator.login()
-
+# The main conditional logic now depends on the values returned by authenticator.login()
 if authentication_status:
+    # Welcome message and logout button
+    st.title(f'Bem vindo {name}!')
+    if st.sidebar.button("Logout"):
+        authenticator.logout()
+        st.rerun()
+
+    # --- Dados e restante do conteúdo do aplicativo autenticado ---
     def carregar_dados():
         return resultado()
-
-    df = carregar_dados()
 
     # --- Sidebar
     st.sidebar.header("🔎 Filtros")
@@ -203,6 +204,7 @@ if authentication_status:
                 tts.save("audio.mp3")
                 st.audio("audio.mp3", format="audio/mp3")
 
+# Error/Warning messages based on authentication status
 elif authentication_status is False:
     st.error('Usuário/Senha é invalido!')
 
