@@ -4,6 +4,8 @@ numpy
 beautifulsoup4
 lxml
 streamlit
+streamlit-authenticator
 plotly
 python-dotenv
 gTTS
+yaml

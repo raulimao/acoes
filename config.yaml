@@ -1,0 +1,16 @@
+credentials:
+  usernames:
+    felype:
+      email: felypenunes@gmail.com
+      logged_in: False
+      name: Felype Nunes
+      password: abc123
+    raul:
+      email: raullenon@gmail.com
+      logged_in: False
+      name: Raul Lenon
+      password: 123abc
+cookie:
+  expiry_days: 1
+  key: some_signature_key
+  name: some_cookie_name
