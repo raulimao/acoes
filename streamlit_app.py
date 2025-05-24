@@ -38,7 +38,7 @@ if not authentication_status:
             elif get_user(new_username):
                 st.error("Usuário já existe!")
             else:
-                add_user(new_username, new_name, new_email, new_password.encode('utf-8')) # Encode password for bcrypt
+                add_user(new_username, new_name, new_email, new_password) # Encode password for bcrypt
                 st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
 # The main conditional logic now depends on the values returned by authenticator.login()
 if authentication_status:
@@ -209,5 +209,4 @@ elif authentication_status is False:
 
 elif authentication_status is None:
     st.warning('Por favor, insira o usuário e senha!')
-
 
