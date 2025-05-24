@@ -14,10 +14,10 @@ from database import add_user, get_user, initialize_database
 # --- Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# --- Página ---
+# --- Configuração da Página ---
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
-# --- Configuração YAML ---
+# --- Carrega config.yaml ---
 try:
     with open("config.yaml") as file:
         config = yaml.load(file, Loader=yaml.SafeLoader)
@@ -48,13 +48,19 @@ authenticator = stauth.Authenticate(
 )
 
 # --- Login ---
-name, authentication_status, username = authenticator.login(form_name="Login", location="sidebar")
+auth_result = authenticator.login(location="sidebar")
 
-# --- Status de login ---
-if authentication_status is False:
-    st.error("Usuário/Senha inválido!")
+if auth_result:
+    name = auth_result.get("name")
+    authentication_status = auth_result.get("authentication_status")
+    username = auth_result.get("username")
+else:
+    name = None
+    authentication_status = None
+    username = None
 
-elif authentication_status is None:
+# --- Criação de conta (antes de autenticar) ---
+if authentication_status is None:
     st.warning("Por favor, insira usuário e senha.")
     with st.expander("👤 Criar novo usuário"):
         new_username = st.text_input("Usuário")
@@ -62,22 +68,30 @@ elif authentication_status is None:
         new_email = st.text_input("Email")
         new_password = st.text_input("Senha", type="password")
         confirm_password = st.text_input("Confirmar senha", type="password")
+
         if st.button("Cadastrar"):
-            if new_password != confirm_password:
+            if not all([new_username, new_name, new_email, new_password, confirm_password]):
+                st.error("Preencha todos os campos.")
+            elif new_password != confirm_password:
                 st.error("As senhas não coincidem!")
             elif get_user(new_username):
                 st.error("Usuário já existe!")
             else:
                 add_user(new_username, new_name, new_email, new_password)
-                st.success("Usuário criado com sucesso! Atualize a página.")
+                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
+
+# --- Status de login ---
+if authentication_status is False:
+    st.error("Usuário/Senha inválido!")
 
 # --- Usuário autenticado ---
 if authentication_status:
     st.title(f"Bem-vindo, {name}!")
 
-    # Logout funcional
+    # Botão de logout
     if authenticator.logout(location="sidebar", button_name="Logout"):
         st.success("Logout realizado com sucesso.")
+        st.session_state.clear()
         st.stop()
 
     df = resultado()
@@ -104,8 +118,7 @@ if authentication_status:
     with st.sidebar.expander("🔝 Exibição"):
         top_n = st.slider("Top N ativos", 5, 100, 10)
 
-    # --- Layout principal ---
-    st.title("📊 Dashboard Fundamentus")
+    st.header("📊 Dashboard Fundamentus")
     st.markdown(f"Exibindo **{len(df_filtrado)}** ativos com score ≥ **{min_score}**")
 
     tab1, tab2, tab3 = st.tabs(["📈 Visão Geral", "📊 Indicadores", "📌 Comparar Ativos"])
@@ -124,12 +137,8 @@ if authentication_status:
     with tab2:
         st.subheader("📊 Indicadores Fundamentais")
         indicadores = {
-            "p_l": "P/L",
-            "p_vp": "P/VP",
-            "psr": "PSR",
-            "dividend_yield": "Dividend Yield",
-            "roe": "ROE",
-            "roic": "ROIC"
+            "p_l": "P/L", "p_vp": "P/VP", "psr": "PSR", "dividend_yield": "Dividend Yield",
+            "roe": "ROE", "roic": "ROIC"
         }
         tipo = st.radio("Gráfico", ["Boxplot", "Histograma"], horizontal=True)
         escala = st.selectbox("Escala Y", ["Linear", "Logarítmica"])
@@ -148,7 +157,7 @@ if authentication_status:
         st.subheader("📌 Comparar Ativos")
         selecionados = st.multiselect("Escolha até 5 papéis", df_filtrado["papel"].unique(), max_selections=5)
         if selecionados:
-            colunas = ["p_l", "p_vp", "psr", "dividend_yield", "roe", "roic"]
+            colunas = list(indicadores.keys())
             df_radar = df_filtrado[df_filtrado["papel"].isin(selecionados)][["papel"] + colunas].set_index("papel")
             fig = go.Figure()
             for papel in df_radar.index:
