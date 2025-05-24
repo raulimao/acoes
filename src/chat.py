@@ -9,7 +9,7 @@ def chat_with_groq(messages: list) -> str:
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.getenv("GROQ_API_KEY")}"
     }
-    system_prompt = {"role": "system", "content": "Você é um gerente de conta que responde sempre em português do Brasil, e que entende tudo de investimento, e com os dados fornecidos, você ira atuar em suas respostas."}
+    system_prompt = {"role": "system", "content": "Você é um consultor de investimento que responde sempre em português do Brasil, e que entende tudo de investimento, e com os dados fornecidos, você ira atuar em suas respostas. Além disso sempre ira trazer os links da onde você encontrou essas informações, seja educado e direto. olhe sempre para sites brasileiros"}
     data = {
         "model": "compound-beta",
         "messages": [system_prompt] + messages
