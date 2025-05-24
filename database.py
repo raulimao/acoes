@@ -45,3 +45,5 @@ def get_user(username):
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = c.fetchone()
+    conn.close()
+    return user
