@@ -34,7 +34,7 @@ def add_user(username, name, email, password):
     """Add a new user to the users table with a hashed password."""
     conn = connect_db()
     c = conn.cursor()
-    hashed_password = bcrypt.hashpw(password, bcrypt.gensalt())
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
     try:
         c.execute('INSERT INTO users (username, name, email, password) VALUES (?, ?, ?, ?)', (username, name, email, hashed_password))
         conn.commit()

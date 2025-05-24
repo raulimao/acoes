@@ -13,8 +13,6 @@ from database import add_user, get_user, initialize_database
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Inicializa banco de dados
-initialize_database()
 
 # --- Configuração da Página ---
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
@@ -73,7 +71,7 @@ elif authentication_status is None:
             elif get_user(new_username):
                 st.error("Usuário já existe!")
             else:
-                add_user(new_username, new_name, new_email, new_password.encode('utf-8'))
+                add_user(new_username, new_name, new_email, new_password)
                 st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
 
 # --- Conteúdo Autenticado (visível apenas quando autenticado) ---
