@@ -104,6 +104,7 @@ with tab3:
 with st.expander("Auxilia AI"):
     # Entrada do usuário para interação com o chatbot
     prompt = st.chat_input("Escreva alguma coisa")
+    prompt_aux = prompt
     
     if prompt:
         if 'base' in prompt:
@@ -112,7 +113,7 @@ with st.expander("Auxilia AI"):
             prompt = prompt.replace('base', df_texto)
         
         # Exibe a mensagem do usuário
-        st.write(f"Usuario: {prompt}")
+        st.write(f"Usuario: {prompt_aux}")
         
         # Gera a resposta do chatbot e a exibe
         resposta = mensagem_cli(prompt)
