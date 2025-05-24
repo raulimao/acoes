@@ -19,25 +19,6 @@ initialize_database()
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
-# This block should remain before the authenticator.login() call
-# Only display the create user section if authentication_status is not set or is False
-if 'authentication_status' not in st.session_state or st.session_state["authentication_status"] is None or st.session_state["authentication_status"] is False:
-    with st.expander("👤 Criar novo usuário"):
-        new_username = st.text_input("Usuário")
-        new_name = st.text_input("Nome completo")
-        new_email = st.text_input("Email")
-        new_password = st.text_input("Senha", type="password")
-        confirm_password = st.text_input("Confirmar senha", type="password")
-
-        if st.button("Cadastrar"):
-            if new_password != confirm_password:
-                st.error("As senhas não coincidem!")
-            elif get_user(new_username):
-                st.error("Usuário já existe!")
-            else:
-                add_user(new_username, new_name, new_email, new_password.encode('utf-8')) # Encode password for bcrypt
-                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
-
 # --- Authentication
 
 # Fetch all users from the database to populate the authenticator
@@ -59,6 +40,25 @@ authenticator = stauth.Authenticate(
 )
 
 name, authentication_status, username = authenticator.login()
+
+# The main conditional logic now depends on the values returned by authenticator.login()
+if not authentication_status:
+    # Only display the create user section if not authenticated
+    with st.expander("👤 Criar novo usuário"):
+        new_username = st.text_input("Usuário")
+        new_name = st.text_input("Nome completo")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("Senha", type="password")
+        confirm_password = st.text_input("Confirmar senha", type="password")
+
+        if st.button("Cadastrar"):
+            if new_password != confirm_password:
+                st.error("As senhas não coincidem!")
+            elif get_user(new_username):
+                st.error("Usuário já existe!")
+            else:
+                add_user(new_username, new_name, new_email, new_password.encode('utf-8')) # Encode password for bcrypt
+                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
 # The main conditional logic now depends on the values returned by authenticator.login()
 if authentication_status:
     # Welcome message and logout button
