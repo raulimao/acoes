@@ -45,9 +45,9 @@ authenticator = stauth.Authenticate(
     config["cookie"]["name"],
     config["cookie"]["key"],
     config["cookie"]["expiry_days"],
-    cookie_expiry_days=config["cookie"]["expiry_days"],
     clear_on_logout=True
 )
+
 
 # --- Login ---
 name, authentication_status, username = authenticator.login(location="sidebar")
