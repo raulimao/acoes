@@ -19,25 +19,6 @@ initialize_database()
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
-# --- Authentication
-
-# Fetch all users from the database to populate the authenticator
-conn, cursor = initialize_database()
-cursor.execute("SELECT username, name, email, password FROM users")
-users_data = cursor.fetchall()
-conn.close()
-
-credentials = {"usernames": {}}
-for user in users_data:
-    username, name, email, hashed_password = user
-    credentials["usernames"][username] = {"name": name, "email": email, "password": hashed_password.decode('utf-8')}
-
-authenticator = stauth.Authenticate(
-    credentials,
-    config['cookie']['name'],
-    config['cookie']['key'], # You might want to move cookie settings out of config.yaml as well
-    config['cookie']['expiry_days']
-)
 
 name, authentication_status, username = authenticator.login()
 
@@ -71,7 +52,6 @@ if authentication_status:
     def carregar_dados():
         return resultado()
 
-    # --- Sidebar
     st.sidebar.header("🔎 Filtros")
 
     with st.sidebar.expander("🎯 Filtros de Pontuação", expanded=True):
@@ -205,6 +185,25 @@ if authentication_status:
                 st.audio("audio.mp3", format="audio/mp3")
 
 # Error/Warning messages based on authentication status
+elif authentication_status is False:
+    st.error('Usuário/Senha é invalido!')
+
+elif authentication_status is None:
+    st.warning('Por favor, insira o usuário e senha!')
+
+# --- Section for Creating a New User (Displayed when NOT authenticated) ---
+# Only display the create user section if not authenticated
+if not authentication_status:
+    with st.expander("👤 Criar novo usuário"):
+        new_username = st.text_input("Usuário")
+        new_name = st.text_input("Nome completo")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("Senha", type="password")
+        confirm_password = st.text_input("Confirmar senha", type="password")
+
+        if st.button("Cadastrar"):
+            if new_password != confirm_password:
+                st.error("As senhas não coincidem!")
 elif authentication_status is False:
     st.error('Usuário/Senha é invalido!')
 
