@@ -8,4 +8,3 @@ streamlit-authenticator
 plotly
 python-dotenv
 gTTS
-yaml
