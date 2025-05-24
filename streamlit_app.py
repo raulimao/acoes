@@ -54,6 +54,29 @@ authenticator = stauth.Authenticate(
 name, authentication_status, username = authenticator.login()
 
 # --- Condicional baseada em autenticação ---
+if authentication_status is False:
+    st.error('Usuário/Senha é inválido!')
+
+elif authentication_status is None:
+    st.warning('Por favor, insira o usuário e senha!')
+    # --- Cadastro de Novo Usuário (visível apenas quando não autenticado) ---
+    with st.expander("👤 Criar novo usuário"):
+        new_username = st.text_input("Usuário")
+        new_name = st.text_input("Nome completo")
+        new_email = st.text_input("Email")
+        new_password = st.text_input("Senha", type="password")
+        confirm_password = st.text_input("Confirmar senha", type="password")
+
+        if st.button("Cadastrar"):
+            if new_password != confirm_password:
+                st.error("As senhas não coincidem!")
+            elif get_user(new_username):
+                st.error("Usuário já existe!")
+            else:
+                add_user(new_username, new_name, new_email, new_password.encode('utf-8'))
+                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
+
+# --- Conteúdo Autenticado (visível apenas quando autenticado) ---
 if authentication_status:
     st.title(f'Bem vindo {name}!')
     if st.sidebar.button("Logout"):
@@ -152,7 +175,11 @@ if authentication_status:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-    # --- Auxilia AI ---
+# --- Auxilia AI (Mova para dentro do bloco autenticado se quiser que só apareça após login) ---
+# Se o chatbot for um recurso premium, mantenha-o dentro do if authentication_status:
+# Se for um recurso público, mova-o para fora dos blocos condicionais de autenticação.
+# Pelo contexto, parece ser um recurso premium, então mantive a estrutura atual.
+# Se precisar mover, me diga!
     def extrair_papeis(prompt, df):
         papeis_disponiveis = df["papel"].str.upper().tolist()
         return [p for p in papeis_disponiveis if p in prompt.upper()]
@@ -178,27 +205,3 @@ if authentication_status:
                 tts = gTTS(text=resposta, lang='pt-br')
                 tts.save("audio.mp3")
                 st.audio("audio.mp3", format="audio/mp3")
-
-elif authentication_status is False:
-    st.error('Usuário/Senha é inválido!')
-
-elif authentication_status is None:
-    st.warning('Por favor, insira o usuário e senha!')
-
-# --- Cadastro de Novo Usuário ---
-if not authentication_status:
-    with st.expander("👤 Criar novo usuário"):
-        new_username = st.text_input("Usuário")
-        new_name = st.text_input("Nome completo")
-        new_email = st.text_input("Email")
-        new_password = st.text_input("Senha", type="password")
-        confirm_password = st.text_input("Confirmar senha", type="password")
-
-        if st.button("Cadastrar"):
-            if new_password != confirm_password:
-                st.error("As senhas não coincidem!")
-            elif get_user(new_username):
-                st.error("Usuário já existe!")
-            else:
-                add_user(new_username, new_name, new_email, new_password.encode('utf-8'))
-                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
