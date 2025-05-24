@@ -100,6 +100,14 @@ with tab3:
         )
         st.plotly_chart(fig, use_container_width=True)
 
+def extrair_papeis(prompt, df):
+    papeis_disponiveis = df["papel"].str.upper().tolist()
+    return [p for p in papeis_disponiveis if p in prompt.upper()
+
+def montar_contexto_para_papeis(papeis, df):
+    dados = df[df["papel"].isin(papeis)]
+    return dados.to_dict(orient="records")
+
 # Auxiliar AI (Chatbot)
 with st.expander("Auxilia AI"):
     # Entrada do usuário para interação com o chatbot
@@ -107,10 +115,11 @@ with st.expander("Auxilia AI"):
     prompt_aux = prompt
     
     if prompt:
-        if 'base' in prompt:
+        papeis_encontrados = extrair_papeis(prompt, df)
+        if papeis_encontrados:
+            dados = montar_contexto_para_papeis(papeis_encontrados, df)
             # Substitui a palavra 'base' pela representação em string do DataFrame
-            json_str = df.to_json(orient="records")
-            prompt = prompt.replace('base', json_str)
+            prompt = f"{prompt} com esses dados: {dados}"
         
         # Exibe a mensagem do usuário
         st.write(f"Usuario: {prompt_aux}")
