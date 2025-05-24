@@ -19,11 +19,28 @@ df = carregar_dados()
 
 # --- Sidebar
 st.sidebar.header("🔎 Filtros")
-min_score = st.sidebar.slider("Score mínimo", 0, 100, 60)
-coluna_ordenacao = st.sidebar.selectbox("Ordenar por", df.columns[df.dtypes != 'object'], index=0)
-top_n = st.sidebar.slider("Top N", 5, 50, 10)
 
-df_filtrado = df[df["score"] >= min_score].sort_values(by=coluna_ordenacao, ascending=False)
+with st.sidebar.expander("🎯 Filtros de Pontuação", expanded=True):
+    min_score = st.slider("Score mínimo", 0, 100, 60)
+    max_score = st.slider("Score máximo", 0, 100, 100)
+    df_filtrado = df[(df["score"] >= min_score) & (df["score"] <= max_score)]
+
+with st.sidebar.expander("📊 Ordenação"):
+    coluna_numerica = df.select_dtypes(include=np.number).columns.tolist()
+    coluna_ordenacao = st.selectbox("Ordenar por", coluna_numerica, index=coluna_numerica.index("score") if "score" in coluna_numerica else 0)
+    ordem = st.radio("Ordem", ["Decrescente", "Crescente"], horizontal=True)
+    crescente = ordem == "Crescente"
+    df_filtrado = df_filtrado.sort_values(by=coluna_ordenacao, ascending=crescente)
+
+with st.sidebar.expander("📈 Seleção de Ações"):
+    setores = sorted(df["papel"].str[:4].unique())  # exemplo genérico
+    prefixos = st.multiselect("Filtrar prefixo (ex: VALE, PETR)", setores)
+    if prefixos:
+        df_filtrado = df_filtrado[df_filtrado["papel"].str[:4].isin(prefixos)]
+
+with st.sidebar.expander("🔝 Exibição"):
+    top_n = st.slider("Top N ativos", 5, 100, 10)
+
 
 # --- Layout principal
 st.title("📊 Dashboard Fundamentus")
