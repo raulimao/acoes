@@ -16,6 +16,32 @@ with open('config.yaml') as file:
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
+with st.expander("👤 Criar novo usuário"):
+    new_username = st.text_input("Usuário")
+    new_name = st.text_input("Nome completo")
+    new_email = st.text_input("Email")
+    new_password = st.text_input("Senha", type="password")
+    confirm_password = st.text_input("Confirmar senha", type="password")
+    
+    if st.button("Cadastrar"):
+        if new_password != confirm_password:
+            st.error("As senhas não coincidem!")
+        elif new_username in config['credentials']['usernames']:
+            st.error("Usuário já existe!")
+        else:
+            # Atualiza o dicionário em memória
+            config['credentials']['usernames'][new_username] = {
+                "name": new_name,
+                "email": new_email,
+                "password": new_password,
+                "logged_in": False
+            }
+
+            # Salva no arquivo YAML
+            with open("config.yaml", "w") as file:
+                yaml.dump(config, file, default_flow_style=False)
+            st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
+
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
