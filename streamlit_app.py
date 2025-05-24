@@ -23,8 +23,6 @@ st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 with open('config.yaml') as file:
     config = yaml.load(file, Loader=yaml.Loader)
 
-credentials = config['credentials']
-cookie = config['cookie']
 
 authenticator = stauth.Authenticate(
     credentials,
