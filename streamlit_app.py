@@ -62,18 +62,9 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
-authenticator.login()
+name, authentication_status, username = authenticator.login()
 
-if st.session_state['authentication_status']:
-    # Place the welcome message after successful login
-    st.title(f'Bem vindo {st.session_state["name"]}!')
-    
-    # Logout button in the sidebar for authenticated users
-    if st.sidebar.button("Logout"):
-        authenticator.logout()
-        st.rerun()
-    # --- Dados
-    @st.cache_data
+if authentication_status:
     def carregar_dados():
         return resultado()
 
@@ -212,8 +203,10 @@ if st.session_state['authentication_status']:
                 tts.save("audio.mp3")
                 st.audio("audio.mp3", format="audio/mp3")
 
-elif st.session_state["authentication_status"] is False:
+elif authentication_status is False:
     st.error('Usuário/Senha é invalido!')
 
-elif st.session_state['authentication_status'] is None:
+elif authentication_status is None:
     st.warning('Por favor, insira o usuário e senha!')
+
+
