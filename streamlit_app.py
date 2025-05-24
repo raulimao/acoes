@@ -51,7 +51,7 @@ if authentication_status:
  st.title(f'Bem vindo {name}!')
  if st.sidebar.button("Logout"):
  authenticator.logout()
- st.rerun()
+    st.rerun()
 
  df = resultado()
 
