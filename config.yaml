@@ -6,9 +6,9 @@ credentials:
       name: Felype Nunes
       password: abc123
     raul:
-      email: raullenon@gmail.com
+      email: raulennonlima@gmail.com
       logged_in: False
-      name: Raul Lenon
+      name: Raul Lennon
       password: 123abc
 cookie:
   expiry_days: 1
