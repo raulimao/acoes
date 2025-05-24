@@ -74,7 +74,7 @@ elif authentication_status is None:
 if authentication_status:
     st.title(f"Bem-vindo, {name}!")
     if st.sidebar.button("Logout"):
-        authenticator.logout()
+        authenticator.logout(button_name="Logout", key="logout_button")
         st.rerun()
 
     df = resultado()
