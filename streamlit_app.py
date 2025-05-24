@@ -65,9 +65,13 @@ authenticator = stauth.Authenticate(
 authenticator.login()
 
 if st.session_state['authentication_status']:
-    authenticator.logout()
-    st.rerun()
+    # Place the welcome message after successful login
     st.title(f'Bem vindo {st.session_state["name"]}!')
+    
+    # Logout button in the sidebar for authenticated users
+    if st.sidebar.button("Logout"):
+        authenticator.logout()
+        st.rerun()
     # --- Dados
     @st.cache_data
     def carregar_dados():
