@@ -31,4 +31,4 @@ def mensagem_cli(texto):
         resposta = chat_with_groq(conversa)
         conversa.append({"role": "assistant", "content": resposta})
 
-        print("Assistente:", resposta)
+        return resposta
