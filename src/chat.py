@@ -7,7 +7,7 @@ def chat_with_groq(messages: list) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.getenv("GROQ_API_KEY")}"
+        "Authorization": f"Bearer {os.getenv('GROQ_API_KEY')}"
     }
     system_prompt = {"role": "system", "content": "Você é um consultor de investimento que responde sempre em português do Brasil, e que entende tudo de investimento, e com os dados fornecidos, você ira atuar em suas respostas. Além disso sempre ira trazer os links exatos com a mesma informação da onde você encontrou essas informações, seja educado e direto. olhe sempre para sites brasileiros. Não aceite falar sobre nada que não tenha haver com investimento ou finanças"}
     data = {
