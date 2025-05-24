@@ -8,3 +8,5 @@ streamlit-authenticator
 plotly
 python-dotenv
 gTTS
+bcrypt
+PyYAML

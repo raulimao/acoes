@@ -7,11 +7,9 @@ from processar_fundamentus import resultado
 from src.chat import mensagem_cli
 from gtts import gTTS
 import streamlit_authenticator as stauth
-import yaml
-from yaml.loader import SafeLoader
-
-with open('config.yaml') as file:
-    config = yaml.load(file,Loader=SafeLoader)
+from database import add_user, get_user, initialize_database
+import bcrypt
+initialize_database()
 
 # --- Config
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
@@ -26,26 +24,29 @@ with st.expander("👤 Criar novo usuário"):
     if st.button("Cadastrar"):
         if new_password != confirm_password:
             st.error("As senhas não coincidem!")
-        elif new_username in config['credentials']['usernames']:
+        elif get_user(new_username):
             st.error("Usuário já existe!")
         else:
-            # Atualiza o dicionário em memória
-            config['credentials']['usernames'][new_username] = {
-                "name": new_name,
-                "email": new_email,
-                "password": new_password,
-                "logged_in": False
-            }
-
-            # Salva no arquivo YAML
-            with open("config.yaml", "w") as file:
-                yaml.dump(config, file, default_flow_style=False)
+            add_user(new_username, new_name, new_email, new_password.encode('utf-8')) # Encode password for bcrypt
             st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
 
+# --- Authentication
+
+# Fetch all users from the database to populate the authenticator
+conn, cursor = initialize_database()
+cursor.execute("SELECT username, name, email, password FROM users")
+users_data = cursor.fetchall()
+conn.close()
+
+credentials = {"usernames": {}}
+for user in users_data:
+    username, name, email, hashed_password = user
+    credentials["usernames"][username] = {"name": name, "email": email, "password": hashed_password}
+
 authenticator = stauth.Authenticate(
-    config['credentials'],
+    credentials,
     config['cookie']['name'],
-    config['cookie']['key'],
+    config['cookie']['key'], # You might want to move cookie settings out of config.yaml as well
     config['cookie']['expiry_days']
 )
 
