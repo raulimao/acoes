@@ -8,7 +8,6 @@ from src.chat import mensagem_cli
 from gtts import gTTS
 import streamlit_authenticator as stauth
 from database import add_user, get_user, initialize_database
-import bcrypt
 initialize_database()
 
 # --- Config
