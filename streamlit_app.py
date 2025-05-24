@@ -102,7 +102,7 @@ with tab3:
 
 def extrair_papeis(prompt, df):
     papeis_disponiveis = df["papel"].str.upper().tolist()
-    return [p for p in papeis_disponiveis if p in prompt.upper()
+    return [p for p in papeis_disponiveis if p in prompt.upper()]
 
 def montar_contexto_para_papeis(papeis, df):
     dados = df[df["papel"].isin(papeis)]
