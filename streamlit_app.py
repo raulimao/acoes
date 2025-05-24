@@ -1,5 +1,6 @@
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -10,50 +11,42 @@ from src.chat import mensagem_cli
 from gtts import gTTS
 import streamlit_authenticator as stauth
 import yaml
-
-# Load config file to get cookie settings
-with open('config.yaml') as file:
-    config = yaml.load(file, Loader=yaml.Loader)
 from database import add_user, get_user, initialize_database
+
+# Inicializa banco de dados
 initialize_database()
 
-# --- Config
+# --- Configurações da Página ---
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
+# --- Carrega configurações de autenticação ---
+with open('config.yaml') as file:
+    config = yaml.load(file, Loader=yaml.Loader)
+
+credentials = config['credentials']
+cookie = config['cookie']
+
+authenticator = stauth.Authenticate(
+    credentials,
+    cookie['name'],
+    cookie['key'],
+    cookie['expiry_days']
+)
+
+# --- Login ---
 name, authentication_status, username = authenticator.login()
 
-# The main conditional logic now depends on the values returned by authenticator.login()
-if not authentication_status:
-    # Only display the create user section if not authenticated
-    with st.expander("👤 Criar novo usuário"):
-        new_username = st.text_input("Usuário")
-        new_name = st.text_input("Nome completo")
-        new_email = st.text_input("Email")
-        new_password = st.text_input("Senha", type="password")
-        confirm_password = st.text_input("Confirmar senha", type="password")
-
-        if st.button("Cadastrar"):
-            if new_password != confirm_password:
-                st.error("As senhas não coincidem!")
-            elif get_user(new_username):
-                st.error("Usuário já existe!")
-            else:
-                add_user(new_username, new_name, new_email, new_password.encode('utf-8')) # Encode password for bcrypt
-                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
-# The main conditional logic now depends on the values returned by authenticator.login()
+# --- Lógica Principal ---
 if authentication_status:
-    # Welcome message and logout button
     st.title(f'Bem vindo {name}!')
     if st.sidebar.button("Logout"):
         authenticator.logout()
         st.rerun()
 
-    # --- Dados e restante do conteúdo do aplicativo autenticado ---
-    def carregar_dados():
-        return resultado()
+    df = resultado()
 
+    # --- Filtros ---
     st.sidebar.header("🔎 Filtros")
-
     with st.sidebar.expander("🎯 Filtros de Pontuação", expanded=True):
         min_score = st.slider("Score mínimo", 0, 100, 60)
         max_score = st.slider("Score máximo", 0, 100, 100)
@@ -75,31 +68,29 @@ if authentication_status:
     with st.sidebar.expander("🔝 Exibição"):
         top_n = st.slider("Top N ativos", 5, 100, 10)
 
-
-    # --- Layout principal
+    # --- Layout principal ---
     st.title("📊 Dashboard Fundamentus")
     st.markdown(f"Exibindo **{len(df_filtrado)}** ativos com score ≥ **{min_score}**")
 
     tab1, tab2, tab3 = st.tabs(["📈 Visão Geral", "📊 Indicadores", "📌 Comparar Ativos"])
 
-    # --- Tab 1: Visão Geral
+    # --- Tab 1: Visão Geral ---
     with tab1:
         st.subheader("Top ações por score")
         st.dataframe(df_filtrado.head(top_n), use_container_width=True)
 
         col1, col2 = st.columns(2)
         with col1:
-            fig = px.histogram(df_filtrado, x="score", nbins=20, title="Distribuição dos Scores", color_discrete_sequence=["#636EFA"])
+            fig = px.histogram(df_filtrado, x="score", nbins=20, title="Distribuição dos Scores")
             st.plotly_chart(fig, use_container_width=True)
 
         with col2:
             fig = px.bar(df_filtrado.head(top_n), x="papel", y="score", title="Top ações por Score", text="score", color="score")
             st.plotly_chart(fig, use_container_width=True)
 
-    # --- Tab 2: Indicadores
+    # --- Tab 2: Indicadores ---
     with tab2:
         st.subheader("📊 Análise de Indicadores Fundamentais")
-        st.markdown("Explore a distribuição dos principais indicadores para as ações filtradas:")
 
         indicadores = {
             "p_l": "P/L (Preço / Lucro)",
@@ -123,13 +114,10 @@ if authentication_status:
                         fig = px.box(df_filtrado, y=col, points="outliers", title=label)
                     else:
                         fig = px.histogram(df_filtrado, x=col, nbins=30, title=label)
-
                     fig.update_layout(yaxis_type="linear" if escala == "Linear" else "log")
-                    fig.update_layout(margin=dict(l=20, r=20, t=30, b=20))
                     st.plotly_chart(fig, use_container_width=True)
 
-
-    # --- Tab 3: Comparar Ativos
+    # --- Tab 3: Comparar Ativos ---
     with tab3:
         ativos_selecionados = st.multiselect("Escolha até 5 papéis para comparar", df_filtrado["papel"].unique(), max_selections=5)
 
@@ -152,6 +140,7 @@ if authentication_status:
             )
             st.plotly_chart(fig, use_container_width=True)
 
+    # --- Chatbot Auxiliar ---
     def extrair_papeis(prompt, df):
         papeis_disponiveis = df["papel"].str.upper().tolist()
         return [p for p in papeis_disponiveis if p in prompt.upper()]
@@ -160,39 +149,32 @@ if authentication_status:
         dados = df[df["papel"].isin(papeis)]
         return dados.to_dict(orient="records")
 
-    # Auxiliar AI (Chatbot)
-    with st.expander("Auxilia AI"):
-        # Entrada do usuário para interação com o chatbot
+    with st.expander("🧠 Auxilia AI"):
         prompt = st.chat_input("Escreva alguma coisa")
         prompt_aux = prompt
-        
+
         if prompt:
             papeis_encontrados = extrair_papeis(prompt, df)
             if papeis_encontrados:
                 dados = montar_contexto_para_papeis(papeis_encontrados, df)
-                # Substitui a palavra 'base' pela representação em string do DataFrame
                 prompt = f"{prompt} com esses dados: {dados}"
-            
-            # Exibe a mensagem do usuário
-            st.write(f"Usuario: {prompt_aux}")
-            
-            # Gera a resposta do chatbot e a exibe
+
+            st.write(f"Usuário: {prompt_aux}")
             resposta = mensagem_cli(prompt)
             if resposta:
                 st.write(f"Auxilia AI: {resposta}")
-                tts = gTTS(text=resposta, lang='pt-br')  # pt-br garante sotaque brasileiro
+                tts = gTTS(text=resposta, lang='pt-br')
                 tts.save("audio.mp3")
                 st.audio("audio.mp3", format="audio/mp3")
 
-# Error/Warning messages based on authentication status
+# --- Feedback de autenticação ---
 elif authentication_status is False:
-    st.error('Usuário/Senha é invalido!')
+    st.error('Usuário/Senha é inválido!')
 
 elif authentication_status is None:
     st.warning('Por favor, insira o usuário e senha!')
 
-# --- Section for Creating a New User (Displayed when NOT authenticated) ---
-# Only display the create user section if not authenticated
+# --- Cadastro de Novo Usuário ---
 if not authentication_status:
     with st.expander("👤 Criar novo usuário"):
         new_username = st.text_input("Usuário")
@@ -204,10 +186,8 @@ if not authentication_status:
         if st.button("Cadastrar"):
             if new_password != confirm_password:
                 st.error("As senhas não coincidem!")
-elif authentication_status is False:
-    st.error('Usuário/Senha é invalido!')
-
-elif authentication_status is None:
-    st.warning('Por favor, insira o usuário e senha!')
-
-
+            elif get_user(new_username):
+                st.error("Usuário já existe!")
+            else:
+                add_user(new_username, new_name, new_email, new_password.encode('utf-8'))
+                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
