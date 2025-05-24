@@ -73,8 +73,9 @@ elif authentication_status is None:
 # --- Usuário autenticado ---
 if authentication_status:
     st.title(f"Bem-vindo, {name}!")
-    authenticator.logout(location="sidebar", button_name="Logout", key="logout_button")
-    st.rerun()
+    if st.sidebar.button("Logout", key="logout_button"):
+        authenticator.logout(location="sidebar")
+        st.rerun()
 
     df = resultado()
 
