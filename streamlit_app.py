@@ -19,39 +19,6 @@ initialize_database()
 # --- Configurações da Página ---
 st.set_page_config(page_title="Dashboard Fundamentus", layout="wide")
 
-# --- Carrega configurações de autenticação ---
-with open('config.yaml') as file:
-    config = yaml.load(file, Loader=yaml.Loader)
-
-
-authenticator = stauth.Authenticate(
-    credentials,
-    cookie['name'],
-    cookie['key'],
-    cookie['expiry_days']
-)
-
-# --- Login ---
-name, authentication_status, username = authenticator.login()
-
-# The main conditional logic now depends on the values returned by authenticator.login()
-if not authentication_status:
-    # Only display the create user section if not authenticated
-    with st.expander("👤 Criar novo usuário"):
-        new_username = st.text_input("Usuário")
-        new_name = st.text_input("Nome completo")
-        new_email = st.text_input("Email")
-        new_password = st.text_input("Senha", type="password")
-        confirm_password = st.text_input("Confirmar senha", type="password")
-
-        if st.button("Cadastrar"):
-            if new_password != confirm_password:
-                st.error("As senhas não coincidem!")
-            elif get_user(new_username):
-                st.error("Usuário já existe!")
-            else:
-                add_user(new_username, new_name, new_email, new_password.encode('utf-8')) # Encode password for bcrypt
-                st.success("Usuário criado com sucesso! Atualize a página para fazer login.")
 # The main conditional logic now depends on the values returned by authenticator.login()
 if authentication_status:
     st.title(f'Bem vindo {name}!')
@@ -191,21 +158,31 @@ elif authentication_status is None:
     st.warning('Por favor, insira o usuário e senha!')
 
 # --- Cadastro de Novo Usuário ---
-if not authentication_status:
-    with st.expander("👤 Criar novo usuário"):
-        new_username = st.text_input("Usuário")
-        new_name = st.text_input("Nome completo")
-        new_email = st.text_input("Email")
-        new_password = st.text_input("Senha", type="password")
-        confirm_password = st.text_input("Confirmar senha", type="password")
 
-        if st.button("Cadastrar"):
-            if new_password != confirm_password:
-                st.error("As senhas não coincidem!")
-elif authentication_status is False:
-    st.error('Usuário/Senha é invalido!')
+# --- Carrega configurações de autenticação ---
+with open('config.yaml') as file:
+    config = yaml.load(file, Loader=yaml.Loader)
 
-elif authentication_status is None:
-    st.warning('Por favor, insira o usuário e senha!')
+# Fetch all users from the database to populate the authenticator
+conn, cursor = initialize_database()
+cursor.execute("SELECT username, name, email, password FROM users")
+users_data = cursor.fetchall()
+conn.close()
 
+credentials = {"usernames": {}}
+for user in users_data:
+    username, name, email, hashed_password = user
+    credentials["usernames"][username] = {"name": name, "email": email, "password": hashed_password.decode('utf-8')}
 
+authenticator = stauth.Authenticate(
+    credentials,
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days']
+)
+
+# --- Login ---
+name, authentication_status, username = authenticator.login()
+
+# This conditional block will be placed immediately after authenticator.login()
+# ... (rest of the code should follow the authenticated/non-authenticated structure)
