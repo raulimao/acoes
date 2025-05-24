@@ -47,8 +47,6 @@ authenticator = stauth.Authenticate(
     config["cookie"]["expiry_days"]
 )
 
-
-
 # --- Login ---
 name, authentication_status, username = authenticator.login(location="sidebar")
 
@@ -78,8 +76,9 @@ if authentication_status:
     st.title(f"Bem-vindo, {name}!")
 
     # Logout funcional
-    authenticator.logout(location="sidebar", button_name="Logout")
-    st.stop()
+    if authenticator.logout(location="sidebar", button_name="Logout"):
+        st.success("Logout realizado com sucesso.")
+        st.stop()
 
     df = resultado()
 
