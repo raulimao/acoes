@@ -45,5 +45,3 @@ def get_user(username):
     c = conn.cursor()
     c.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = c.fetchone()
-    close_db(conn) # <-- Corrected indentation
-    return user # <-- Added return statement
