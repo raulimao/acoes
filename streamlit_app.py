@@ -6,7 +6,7 @@ import plotly.graph_objects as go
 from processar_fundamentus import resultado
 from src.chat import mensagem_cli
 from gtts import gTTS
-from streamlit_authenticator as stauth
+import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
