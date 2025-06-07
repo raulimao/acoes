@@ -40,13 +40,14 @@ def limpar_valores(df, skip_cols=["papel"]):
         if col in skip_cols:
             continue
         if df[col].dtype == object:
+            df[col] = df[col].astype(str).str.strip()
+            # valores "-" indicam dados ausentes e nao devem remover o sinal de numeros negativos
+            df[col] = df[col].replace("-", np.nan)
             df[col] = (
-                df[col].astype(str)
-                    .str.strip()
+                df[col]
                     .str.replace(".", "", regex=False)
                     .str.replace(",", ".", regex=False)
                     .str.replace("%", "", regex=False)
-                    .str.replace("-", "", regex=False)
             )
             df[col] = pd.to_numeric(df[col], errors="coerce")
     return df
