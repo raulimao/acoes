@@ -29,6 +29,11 @@ cd acoes
 pip install -r requirements.txt
 ```
 
+Crie um arquivo `.env` definindo sua variável `GROQ_API_KEY`:
+```bash
+echo "GROQ_API_KEY=suachave" > .env
+```
+
 ### 3. Execute o script de coleta e cálculo
 ```bash
 python processar_fundamentus.py
@@ -43,7 +48,6 @@ streamlit run streamlit_app.py
 
 Ou acesse diretamente pelo Streamlit Cloud:
 👉 [Acessar o Dashboard](https://h9aj34hulirujnukbubacg.streamlit.app)
-
 
 ## 📈 Score dos Ativos
 
@@ -107,5 +111,4 @@ Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
 
 Feito com 💻 por [@raulimao](https://github.com/raulimao) e [@felps2003](https://github.com/felps2003)  
 
- 
  
