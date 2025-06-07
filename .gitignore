@@ -1,0 +1,15 @@
+# Python caches
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+.env.*
+
+# Databases and generated media
+*.db
+audio.mp3
+This
+
+# Misc
+.DS_Store

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
 
+
 def chat_with_groq(messages: list) -> str:
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
@@ -19,16 +20,7 @@ def chat_with_groq(messages: list) -> str:
     return response.json()["choices"][0]["message"]["content"]
 
 
-def mensagem_cli(texto):
-    conversa = []
-
-    while True:
-        user_input = texto
-        if user_input.lower() in ["sair", "exit", "quit"]:
-            break
-
-        conversa.append({"role": "user", "content": user_input})
-        resposta = chat_with_groq(conversa)
-        conversa.append({"role": "assistant", "content": resposta})
-
-        return resposta
+def mensagem_cli(texto: str) -> str:
+    """Envia o texto para o modelo e retorna a resposta."""
+    mensagens = [{"role": "user", "content": texto}]
+    return chat_with_groq(mensagens)

@@ -122,7 +122,3 @@ def resultado():
     except Exception as e:
         print(f"❌ Erro ao processar os dados: {e}")
         return pd.DataFrame()
-
-
-#if __name__ == "__main__":
-#    main()
