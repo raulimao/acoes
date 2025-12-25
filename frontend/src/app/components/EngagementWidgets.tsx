@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { Lock } from 'lucide-react';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
 interface Alert {
     type: 'success' | 'warning' | 'info';
     icon: string;
@@ -23,7 +25,7 @@ export default function EngagementWidgets() {
 
     const fetchAlerts = async () => {
         try {
-            const response = await axios.get('http://localhost:8000/api/alerts');
+            const response = await axios.get(`${API_URL}/alerts`);
             setAlerts(response.data.alerts);
         } catch (error) {
             console.error('Error fetching alerts:', error);
@@ -34,7 +36,7 @@ export default function EngagementWidgets() {
 
     const downloadReport = () => {
         if (user?.is_premium) {
-            window.open('http://localhost:8000/api/reports/weekly', '_blank');
+            window.open(`${API_URL}/reports/weekly`, '_blank');
         } else {
             alert("🔒 Recurso Premium: Assine o Pro para baixar relatórios semanais em PDF.");
             // In a real app, open a modal or redirect to pricing
@@ -90,8 +92,8 @@ export default function EngagementWidgets() {
 
             {/* Weekly Report Widget */}
             <div className={`relative rounded-xl p-6 border flex flex-col justify-between overflow-hidden ${user?.is_premium
-                    ? 'bg-gradient-to-br from-purple-900 to-indigo-900 border-purple-700'
-                    : 'bg-gray-900 border-gray-700 opacity-80'
+                ? 'bg-gradient-to-br from-purple-900 to-indigo-900 border-purple-700'
+                : 'bg-gray-900 border-gray-700 opacity-80'
                 }`}>
                 <div>
                     <h3 className="text-xl font-bold text-white mb-2 flex items-center justify-between">
@@ -106,8 +108,8 @@ export default function EngagementWidgets() {
                 <button
                     onClick={downloadReport}
                     className={`w-full font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${user?.is_premium
-                            ? 'bg-white text-purple-900 hover:bg-purple-100'
-                            : 'bg-gray-700 text-gray-400 cursor-not-allowed hover:bg-gray-600'
+                        ? 'bg-white text-purple-900 hover:bg-purple-100'
+                        : 'bg-gray-700 text-gray-400 cursor-not-allowed hover:bg-gray-600'
                         }`}
                 >
                     <span>{user?.is_premium ? '📥 Baixar PDF' : '🔒 Bloqueado (Pro)'}</span>

@@ -29,7 +29,7 @@ import StockCard from '../components/StockCard';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 interface Stock {
   papel: string;

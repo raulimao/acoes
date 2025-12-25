@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
 interface Stock {
     ticker: string;
     sector: string;
@@ -56,7 +58,7 @@ export default function SuggestedPortfolio() {
     const fetchPortfolio = async (profile: string) => {
         setLoading(true);
         try {
-            const response = await axios.post('http://localhost:8000/api/portfolio/suggested', {
+            const response = await axios.post(`${API_URL}/portfolio/suggested`, {
                 profile
             });
             setPortfolio(response.data);
