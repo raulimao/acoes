@@ -17,7 +17,13 @@ def carregar_fundamentus() -> pd.DataFrame:
         DataFrame with raw stock data
     """
     print("🔄 Carregando dados do Fundamentus...")
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1"
+    }
     
     response = requests.get(FUNDAMENTUS_URL, headers=headers)
     response.raise_for_status()
@@ -58,7 +64,10 @@ def buscar_detalhes_ativo(ticker: str) -> dict:
     from config.settings import FUNDAMENTUS_DETAIL_URL
     
     url = f"{FUNDAMENTUS_DETAIL_URL}{ticker}"
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+    }
     
     try:
         response = requests.get(url, headers=headers)
