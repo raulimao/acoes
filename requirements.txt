@@ -14,4 +14,5 @@ supabase>=2.0.0
 openpyxl>=3.1.0
 fastapi>=0.109.0
 uvicorn>=0.27.0
-
+python-jose[cryptography]>=3.3.0
+groq>=0.4.0
