@@ -3,18 +3,42 @@
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 ![Streamlit](https://img.shields.io/badge/Streamlit-Cloud-orange?logo=streamlit)
+![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase)
 
-Este projeto automatiza a análise de ações listadas na B3 com base em indicadores fundamentalistas coletados diretamente do site [Fundamentus](https://www.fundamentus.com.br/). A análise é visualizada por meio de um dashboard interativo construído com **Streamlit** e **Plotly**.
+Dashboard para análise de ações da B3 com base em indicadores fundamentalistas do [Fundamentus](https://www.fundamentus.com.br/).
 
 ## 🔍 Funcionalidades
 
-- Coleta automática dos dados fundamentalistas de todas as ações da B3
-- Padronização e limpeza dos dados (corrige formatações e inconsistências)
-- Cálculo de score com base em 16 indicadores clássicos de Value Investing
-- Visualização interativa dos dados filtrados e classificados
-- Exportação de CSV com os resultados filtrados
-- Comparação de múltiplas ações com gráfico de radar
-- Interface interativa com filtros por Score, ordenação e seleção de indicadores
+- ✅ Coleta automática de dados do Fundamentus
+- ✅ **4 estratégias de investimento**: Graham, Greenblatt, Bazin, Qualidade
+- ✅ **Super Score** combinando todas as estratégias com pesos
+- ✅ Filtros por **Setor/Subsetor**
+- ✅ **Histórico** de ações qualificadas (Supabase)
+- ✅ Chat AI (Groq) para consultas sobre ações
+- ✅ Comparação de ativos com gráfico radar
+
+## 🏗️ Estrutura do Projeto
+
+```
+acoes/
+├── app/                    # Interface Streamlit
+│   └── main.py             # Aplicação principal
+├── core/                   # Lógica de negócio
+│   ├── fundamentus/        # Scraper e cleaner
+│   ├── scoring/            # Sistema de pontuação
+│   └── pipeline.py         # Pipeline de dados
+├── services/               # Serviços externos
+│   ├── ai_chat.py          # Chat Groq AI
+│   ├── auth_service.py     # Autenticação
+│   ├── history_service.py  # Histórico (Supabase)
+│   └── supabase_client.py  # Cliente Supabase
+├── config/                 # Configurações
+│   ├── settings.py         # Constantes
+│   └── strategies_config.py # Estratégias e filtros
+├── .env                    # Variáveis de ambiente
+├── config.yaml             # Config autenticação
+└── requirements.txt        # Dependências
+```
 
 ## 🚀 Como usar
 
@@ -24,88 +48,40 @@ git clone https://github.com/raulimao/acoes.git
 cd acoes
 ```
 
-### 2. Instale as dependências
+### 2. Crie e ative o ambiente virtual
+```bash
+python -m venv venv
+.\venv\Scripts\activate  # Windows
+source venv/bin/activate  # Linux/Mac
+```
+
+### 3. Instale as dependências
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3. Execute o script de coleta e cálculo
-```bash
-python processar_fundamentus.py
+### 4. Configure as variáveis de ambiente
+Crie um arquivo `.env` com:
+```env
+GROQ_API_KEY="sua_chave_groq"
+SUPABASE_URL="https://seu-projeto.supabase.co"
+SUPABASE_KEY="sua_chave_supabase"
 ```
 
-Isso irá gerar o arquivo `fundamentus_ranking_corrigido.csv` com os dados tratados e ranqueados.
-
-### 4. Rode o dashboard
+### 5. Execute o dashboard
 ```bash
-streamlit run streamlit_app.py
+streamlit run app/main.py
 ```
 
-Ou acesse diretamente pelo Streamlit Cloud:
-👉 [Acessar o Dashboard](https://h9aj34hulirujnukbubacg.streamlit.app)
+## 📈 Estratégias de Investimento
 
-
-## 📈 Score dos Ativos
-
-O score de cada ativo é calculado com base na proximidade a critérios considerados ideais para investimentos de longo prazo:
-
-| Indicador                | Regra Ideal |
-|--------------------------|-------------|
-| P/L                     | < 15        |
-| P/VP                    | <= 1.5      |
-| PSR                     | <= 1.5      |
-| Dividend Yield          | > 4         |
-| P/Ativo                 | <= 1.5      |
-| P/Cap. Giro             | >= 1        |
-| P/EBIT                  | < 12        |
-| P/Ativ Circ. Líq.       | < 1.5       |
-| EV/EBIT                 | < 10        |
-| EV/EBITDA               | < 8         |
-| Margem EBIT             | >= 10       |
-| Margem Líquida          | >= 5        |
-| Liquidez Corrente       | >= 1.5      |
-| ROIC                    | > 10        |
-| ROE                     | > 15        |
-| Dívida Bruta / Patrim.  | < 0.5       |
-
-O score é uma média ponderada da aderência a esses critérios.
-
-## 📦 Estrutura do projeto
-
-```bash
-.
-├── acoes.ipynb                      # Notebook exploratório (opcional)
-├── processar_fundamentus.py        # Script de coleta e tratamento de dados
-├── streamlit_app.py                # Aplicação Streamlit
-├── fundamentus_ranking_corrigido.csv  # Resultado gerado
-├── requirements.txt                # Dependências
-└── README.md                       # Este arquivo
-```
-
-## 🧠 Pré-requisitos
-
-- Python 3.8 ou superior
-- Conexão com a internet (para acessar o Fundamentus)
-
-## 📬 Contribuição
-
-Pull requests são bem-vindos! Fique à vontade para sugerir melhorias, novos indicadores ou visualizações adicionais.
-
-## ❓ FAQ
-
-**Os dados são atualizados automaticamente?**
-> Não. Para atualizar, execute novamente o script `processar_fundamentus.py`.
-
-**Posso adicionar outros indicadores?**
-> Sim! Adicione no dicionário `criterios` e ajuste o código conforme necessário.
+| Estratégia | Peso | Filtros |
+|------------|------|---------|
+| Graham | 1.0x | P/L, P/VP, Liquidez, Dívida |
+| Greenblatt | 1.5x | ROIC, EV/EBIT |
+| Bazin | 1.0x | DY, Dívida, P/L |
+| Qualidade | 2.0x | ROE, Margem, ROIC, Dívida |
 
 ## 📄 Licença
 
-Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
-
----
-
-Feito com 💻 por [@raulimao](https://github.com/raulimao) e [@felps2003](https://github.com/felps2003)  
-
- 
- 
+MIT License - [@raulimao](https://github.com/raulimao)

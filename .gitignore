@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Environment variables (CRITICAL - contains secrets!)
+.env
+.env.local
+.env.production
+.env.development
+.env*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite3
+users.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build outputs
+.next/
+out/
+
+# Test coverage
+coverage/
+.coverage
+htmlcov/
+
+# Temporary files
+*.tmp
+*.bak
