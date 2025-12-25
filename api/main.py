@@ -767,8 +767,7 @@ async def get_alerts():
     # Get history from 7 days ago
     try:
         from datetime import datetime, timedelta
-        seven_days_ago = (datetime.now() - timedelta(days=7)).strftime('%Y-%m-%d')
-        history_df = get_historico(from_date=seven_days_ago)
+        history_df = get_historico(dias=7)
         
         alerts = []
         
