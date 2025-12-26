@@ -97,8 +97,7 @@ def add_user(username: str, name: str, email: str, password: str = None, is_prem
             # Update existing profile
             client.table("profiles").update({
                 "name": name,
-                "username": username,
-                "is_premium": is_premium
+                "username": username
             }).eq("email", email).execute()
         else:
             # For OAuth users, get the auth user ID first
