@@ -54,7 +54,7 @@ def get_user_by_email(email: str):
     """
     try:
         client = get_supabase_client()
-        result = client.table("profiles").select("*").eq("email", email).single().execute()
+        result = client.table("profiles").select("*").ilike("email", email).maybe_single().execute()
         
         if result.data:
             profile = result.data
@@ -90,15 +90,15 @@ def add_user(username: str, name: str, email: str, password: str = None, is_prem
     try:
         client = get_supabase_client()
         
-        # Check if profile exists
-        existing = client.table("profiles").select("*").eq("email", email).execute()
+        # Check if profile exists (case insensitive)
+        existing = client.table("profiles").select("*").ilike("email", email).execute()
         
         if existing.data and len(existing.data) > 0:
             # Update existing profile
             client.table("profiles").update({
                 "name": name,
                 "username": username
-            }).eq("email", email).execute()
+            }).ilike("email", email).execute()
         else:
             # For OAuth users, get the auth user ID first
             # If no auth user exists, create profile with email as temporary ID
