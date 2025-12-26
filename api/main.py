@@ -27,8 +27,9 @@ from utils.logging_config import logger
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
-from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium
-from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium
+from services.history_service import save_to_historico, get_historico
+from services.setores_service import get_all_setores
+from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
@@ -319,6 +320,14 @@ async def oauth_login(email: str, name: str, provider: str = "google"):
     # In production, you'd check Supabase profiles table for is_premium
     is_premium = False
     
+    is_premium = False
+    
+    # Sync User to DB (Ensures profile exists for Premium upgrades)
+    try:
+        upsert_oauth_user(email, name)
+    except Exception as e:
+        logger.error("oauth_sync_failed", error=str(e))
+
     # Try to get existing user premium status from database
     try:
         existing = get_user_by_email(email)
@@ -383,6 +392,12 @@ async def admin_force_upgrade(email: str, key: str):
     # Simple hardcoded key for now - user is the only admin
     if key != "admin_secret_123":
         raise HTTPException(status_code=403, detail="Forbidden")
+    
+    if key != "admin_secret_123":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    # Ensure user exists first (fix for OAuth ghosts)
+    upsert_oauth_user(email, email.split("@")[0])
     
     success = update_user_premium(email, True)
     if success:

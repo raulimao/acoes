@@ -138,6 +138,12 @@ def add_user(username: str, name: str, email: str, password: str = None, is_prem
         return False
 
 
+
+def upsert_oauth_user(email: str, name: str):
+    """Ensure OAuth user exists in profiles table."""
+    username = email.split("@")[0]
+    return add_user(username, name, email)
+
 def verify_user(email: str, password: str):
     """
     Verify user credentials.
