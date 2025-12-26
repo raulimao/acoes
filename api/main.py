@@ -27,8 +27,7 @@ from utils.logging_config import logger
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
-from services.history_service import save_to_historico, get_historico
-from services.setores_service import get_all_setores
+
 from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
@@ -64,7 +63,6 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -393,8 +391,7 @@ async def admin_force_upgrade(email: str, key: str):
     if key != "admin_secret_123":
         raise HTTPException(status_code=403, detail="Forbidden")
     
-    if key != "admin_secret_123":
-        raise HTTPException(status_code=403, detail="Forbidden")
+
     
     # Ensure user exists first (fix for OAuth ghosts)
     upsert_oauth_user(email, email.split("@")[0])
