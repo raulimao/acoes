@@ -21,12 +21,16 @@ import pandas as pd
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import os
+import time
+from utils.logging_config import logger
 
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
 from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium
-from services.payment_service import create_checkout_session, verify_webhook_signature
+from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium
+from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
+from services.email_service import send_welcome_email, send_payment_success_email
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from config.strategies_config import ESTRATEGIAS, FILTROS
 
@@ -59,7 +63,52 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+
+# Middleware for Logging and Performance
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+    
+    # Generate Request ID (simplified)
+    request_id = str(int(time.time() * 1000))
+    structlog.contextvars.bind_contextvars(request_id=request_id)
+    
+    logger.info("request_started", path=request.url.path, method=request.method, ip=request.client.host)
+    
+    try:
+        response = await call_next(request)
+        process_time = time.time() - start_time
+        
+        logger.info(
+            "request_completed",
+            path=request.url.path,
+            status_code=response.status_code,
+            duration=f"{process_time:.4f}s"
+        )
+        return response
+    except Exception as e:
+        process_time = time.time() - start_time
+        logger.error(
+            "request_failed",
+            path=request.url.path,
+            error=str(e),
+            duration=f"{process_time:.4f}s",
+            exc_info=True
+        )
+        # Re-raise so FastAPI exception handler catches it (or our global one)
+        raise e
+
+# Global Exception Handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error("unhandled_exception", error=str(exc), path=request.url.path, exc_info=True)
+    return {
+        "detail": "Internal Server Error",
+        "message": "Ocorreu um erro inesperado. Nossa equipe foi notificada."
+    }
 
 # Cache for stock data
 _cached_data = None
@@ -245,6 +294,17 @@ async def register(request: RegisterRequest):
         user={"username": username, "name": request.name, "email": request.email, "is_premium": False}
     )
 
+    # Convert to background task in production to not block response
+    try:
+        send_welcome_email(request.name, request.email)
+    except Exception as e:
+        logger.error("welcome_email_failed", error=str(e))
+    
+    return TokenResponse(
+        access_token=access_token,
+        user={"username": username, "name": request.name, "email": request.email, "is_premium": False}
+    )
+
 
 @app.post("/api/auth/oauth-login", response_model=TokenResponse)
 async def oauth_login(email: str, name: str, provider: str = "google"):
@@ -317,6 +377,36 @@ async def create_checkout(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/admin/force-upgrade")
+async def admin_force_upgrade(email: str, key: str):
+    """Emergency endpoint to upgrade user if webhook fails."""
+    # Simple hardcoded key for now - user is the only admin
+    if key != "admin_secret_123":
+        raise HTTPException(status_code=403, detail="Forbidden")
+    
+    success = update_user_premium(email, True)
+    if success:
+        return {"status": "success", "message": f"User {email} upgraded to Premium"}
+    else:
+        raise HTTPException(status_code=400, detail="User not found")
+
+@app.post("/api/payments/portal")
+async def create_portal(
+    request: CheckoutRequest,  # reusing same model for return_url
+    current_user: dict = Depends(get_current_user)
+):
+    """Create Stripe Customer Portal Session."""
+    try:
+        url = create_portal_session(
+            email=current_user["email"],
+            return_url=request.return_url.rstrip("/")
+        )
+        return {"url": url}
+    except Exception as e:
+        # If user is not customer yet (hand-added database entries), handle gracefully
+        logger.error("portal_creation_failed", error=str(e), email=current_user["email"])
+        raise HTTPException(status_code=400, detail="Não foi possível acessar o portal. Você tem uma assinatura ativa?")
+
 @app.post("/api/payments/webhook")
 async def stripe_webhook(request: Request):
     """Handle Stripe Webhooks to update user premium status."""
@@ -340,14 +430,19 @@ async def stripe_webhook(request: Request):
             email = session['customer_details'].get('email')
             
         if email:
-            print(f"💰 Payment success for {email}. Upgrading to Premium...")
+            logger.info("payment_success", email=email, amount=session.get('amount_total'))
             success = update_user_premium(email, True)
             if success:
-                print(f"✅ User {email} upgraded successfully.")
+                logger.info("user_upgraded", email=email)
+                try:
+                    amount = session.get('amount_total', 2990)
+                    send_payment_success_email(email, amount)
+                except Exception as e:
+                    logger.error("payment_email_failed", error=str(e))
             else:
-                print(f"❌ Failed to upgrade user {email}.")
+                logger.error("upgrade_failed", email=email)
         else:
-            print("⚠️ Payment received but no email found.")
+            logger.warning("payment_no_email", session_id=session.get('id'))
             
     return {"status": "success"}
 

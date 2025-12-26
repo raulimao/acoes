@@ -13,6 +13,7 @@ export default function PricingPage() {
     const { user } = useAuth();
     const router = useRouter();
     const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
+    const [isPortalLoading, setIsPortalLoading] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
 
     const handleSubscribe = async () => {
@@ -35,6 +36,25 @@ export default function PricingPage() {
             console.error('Error creating checkout session:', error);
             alert('Erro ao iniciar pagamento. Tente novamente.');
             setIsLoadingCheckout(false);
+        }
+    };
+
+    const handlePortal = async () => {
+        if (!user) return;
+        setIsPortalLoading(true);
+        try {
+            const { data } = await axios.post(`${API_URL}/payments/portal`, {
+                return_url: window.location.href
+            }, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            window.location.href = data.url;
+        } catch (error) {
+            console.error('Error accessing portal:', error);
+            alert('Erro ao acessar gerenciamento de assinatura.');
+            setIsPortalLoading(false);
         }
     };
 
@@ -184,15 +204,20 @@ export default function PricingPage() {
                             </div>
 
                             <button
-                                onClick={handleSubscribe}
-                                disabled={isLoadingCheckout || user?.is_premium}
+                                onClick={user?.is_premium ? handlePortal : handleSubscribe}
+                                disabled={isLoadingCheckout || isPortalLoading}
                                 className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all transform hover:scale-[1.02] shadow-xl mb-8 group/btn flex items-center justify-center gap-2 relative overflow-hidden ${user?.is_premium
-                                    ? 'bg-green-600 text-white cursor-default'
+                                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-500/40'
                                     : 'bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-500 hover:to-orange-500 text-white shadow-purple-500/40'
                                     }`}
                             >
-                                <span className="relative z-10">{isLoadingCheckout ? 'Processando...' : user?.is_premium ? 'Plano Ativo ✅' : 'Quero Ser Pro'}</span>
-                                {(!isLoadingCheckout && !user?.is_premium) && <Crown className="w-4 h-4 relative z-10 mb-0.5" />}
+                                <span className="relative z-10">
+                                    {isLoadingCheckout ? 'Processando...' :
+                                        isPortalLoading ? 'Abrindo Portal...' :
+                                            user?.is_premium ? 'Gerenciar Assinatura' : 'Quero Ser Pro'}
+                                </span>
+                                {(!isLoadingCheckout && !isPortalLoading && !user?.is_premium) && <Crown className="w-4 h-4 relative z-10 mb-0.5" />}
+                                {(user?.is_premium && !isPortalLoading) && <Zap className="w-4 h-4 relative z-10 mb-0.5" />}
                             </button>
 
                             <div className="space-y-4 flex-1">

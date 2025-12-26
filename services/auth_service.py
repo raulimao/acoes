@@ -242,7 +242,7 @@ def update_user_premium(email: str, is_premium: bool) -> bool:
         client = get_supabase_client()
         client.table("profiles").update({
             "is_premium": is_premium
-        }).eq("email", email).execute()
+        }).ilike("email", email).execute()
         return True
     except Exception as e:
         print(f"Error updating premium status: {e}")

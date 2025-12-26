@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { TrendingUp, Mail, Lock, User, ArrowRight, Sparkles, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { TrendingUp, Mail, Lock, User, ArrowRight, Sparkles, Eye, EyeOff, AlertCircle, Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
@@ -12,6 +13,7 @@ export default function LoginPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -38,6 +40,12 @@ export default function LoginPage() {
         if (isLogin) {
             success = await login(formData.email, formData.password);
         } else {
+            if (!acceptedTerms) {
+                // We need to expose a setError method or use alert temporarily if error state is handled inside hook only
+                alert("Você precisa concordar com os Termos de Uso e Política de Privacidade.");
+                setLoading(false);
+                return;
+            }
             success = await register(formData.name, formData.email, formData.password);
         }
 
@@ -257,10 +265,33 @@ export default function LoginPage() {
                         {/* Forgot password */}
                         {isLogin && (
                             <div className="login-forgot">
-                                <button type="button" className="login-forgot-btn">
+                                <Link href="/forgot-password" className="login-forgot-btn">
                                     Esqueceu a senha?
-                                </button>
+                                </Link>
                             </div>
+                        )}
+
+                        {/* Terms and Conditions Checkbox (Register only) */}
+                        {!isLogin && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="flex items-start gap-3 mt-4 mb-2"
+                            >
+                                <div className="relative flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        id="terms"
+                                        checked={acceptedTerms}
+                                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                        className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-gray-500 bg-white/5 checked:border-purple-500 checked:bg-purple-500 transition-all"
+                                    />
+                                    <Check className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
+                                </div>
+                                <label htmlFor="terms" className="text-xs text-gray-400 cursor-pointer select-none leading-tight">
+                                    Li e concordo com os <a href="/terms" target="_blank" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">Termos de Uso</a> e <a href="/privacy" target="_blank" className="text-purple-400 hover:text-purple-300 underline underline-offset-2">Política de Privacidade</a>.
+                                </label>
+                            </motion.div>
                         )}
 
                         {/* Submit button */}

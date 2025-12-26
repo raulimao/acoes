@@ -72,3 +72,26 @@ def verify_webhook_signature(payload, sig_header):
     except stripe.error.SignatureVerificationError as e:
         # Invalid signature
         raise HTTPException(status_code=400, detail="Invalid signature")
+
+def create_portal_session(email: str, return_url: str):
+    """
+    Creates a Stripe Customer Portal session for subscription management.
+    """
+    try:
+        # Find customer by email
+        customers = stripe.Customer.list(email=email, limit=1).data
+        if not customers:
+             # In a real app we would ensure customer is created on signup
+             # For now, if no customer, we can't open portal
+             raise HTTPException(status_code=404, detail="Cliente não encontrado no Stripe")
+        
+        customer_id = customers[0].id
+
+        portal_session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=return_url,
+        )
+        return portal_session.url
+    except Exception as e:
+        print(f"Error creating portal session: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
