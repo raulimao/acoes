@@ -1,6 +1,8 @@
+'use client';
 import React from 'react';
 import { Lock, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 interface PremiumLockProps {
     title?: string;
@@ -11,6 +13,8 @@ export default function PremiumLock({
     title = "⛔ Acesso Restrito a Investidores Pro",
     description = "Existem 97 Oportunidades acima da média escondidas aqui."
 }: PremiumLockProps) {
+    const router = useRouter();
+
     return (
         <div className="absolute inset-0 backdrop-blur-sm bg-slate-950/60 flex flex-col items-center justify-center text-center p-6 z-20 rounded-xl border border-white/5">
             <motion.div
@@ -39,7 +43,7 @@ export default function PremiumLock({
 
                 <button
                     className="w-full py-3 px-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 group"
-                    onClick={() => window.open('https://buy.stripe.com/test', '_blank')} // Placeholder link
+                    onClick={() => router.push('/pricing')}
                 >
                     <span>Ver Ranking Completo</span>
                     <Sparkles className="w-4 h-4 group-hover:rotate-12 transition-transform" />
