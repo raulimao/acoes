@@ -18,3 +18,4 @@ python-jose[cryptography]>=3.3.0
 groq>=0.4.0
 fpdf2>=2.7.0
 cloudscraper>=1.2.71
+stripe>=7.0.0

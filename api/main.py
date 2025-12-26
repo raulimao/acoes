@@ -25,7 +25,9 @@ import os
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
-from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database
+from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium
+from services.payment_service import create_checkout_session, verify_webhook_signature
+from fastapi import FastAPI, HTTPException, Query, Depends, Request
 from config.strategies_config import ESTRATEGIAS, FILTROS
 
 # JWT Configuration
@@ -285,10 +287,69 @@ async def oauth_login(email: str, name: str, provider: str = "google"):
 
 
 
+
 @app.get("/api/auth/me", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):
     """Get current authenticated user info."""
     return current_user
+
+
+# ============================================
+# PAYMENT ENDPOINTS
+# ============================================
+
+class CheckoutRequest(BaseModel):
+    return_url: str
+
+@app.post("/api/payments/checkout")
+async def create_checkout(
+    request: CheckoutRequest,
+    current_user: dict = Depends(get_current_user)
+):
+    """Create Stripe Checkout Session."""
+    try:
+        url = create_checkout_session(
+            user_id=current_user.get("username", "unknown"),
+            email=current_user["email"],
+            base_url=request.return_url.rstrip("/")
+        )
+        return {"url": url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/payments/webhook")
+async def stripe_webhook(request: Request):
+    """Handle Stripe Webhooks to update user premium status."""
+    payload = await request.body()
+    sig_header = request.headers.get('stripe-signature')
+
+    try:
+        event = verify_webhook_signature(payload, sig_header)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Handle the event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        
+        # Get customer email from metadata or customer details
+        metadata = session.get('metadata', {})
+        email = metadata.get('email')
+        
+        if not email and session.get('customer_details'):
+            email = session['customer_details'].get('email')
+            
+        if email:
+            print(f"💰 Payment success for {email}. Upgrading to Premium...")
+            success = update_user_premium(email, True)
+            if success:
+                print(f"✅ User {email} upgraded successfully.")
+            else:
+                print(f"❌ Failed to upgrade user {email}.")
+        else:
+            print("⚠️ Payment received but no email found.")
+            
+    return {"status": "success"}
 
 
 # ============================================
