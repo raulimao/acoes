@@ -107,7 +107,7 @@ export default function PricingPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="flex flex-col h-full bg-[#12131e]/60 backdrop-blur-xl rounded-[32px] border border-white/5 p-8 lg:p-10 hover:bg-[#12131e]/80 transition-colors duration-300"
+                        className="flex flex-col h-full bg-[#12131e]/60 backdrop-blur-xl rounded-3xl border border-white/5 p-10 hover:bg-[#12131e]/80 transition-colors duration-300"
                     >
                         <div className="mb-8">
                             <h3 className="text-xl font-bold text-gray-300 mb-2">Iniciante</h3>
@@ -156,12 +156,12 @@ export default function PricingPage() {
                         className="relative group flex flex-col h-full"
                     >
                         {/* Glowing Border Effect */}
-                        <div className="absolute -inset-[2px] bg-gradient-to-b from-purple-500 via-pink-500 to-orange-500 rounded-[34px] blur-[15px] opacity-40 group-hover:opacity-75 transition duration-700 animate-pulse-slow"></div>
+                        <div className="absolute -inset-[2px] bg-gradient-to-b from-purple-500 via-pink-500 to-orange-500 rounded-[28px] blur-[15px] opacity-40 group-hover:opacity-75 transition duration-700 animate-pulse-slow"></div>
 
-                        <div className="relative flex-1 bg-[#161726] rounded-[32px] border border-white/10 p-8 lg:p-10 flex flex-col overflow-hidden shadow-2xl">
+                        <div className="relative flex-1 bg-[#161726] rounded-3xl border border-white/10 p-10 flex flex-col overflow-hidden shadow-2xl">
 
                             {/* Recommended Badge - Header Integration */}
-                            <div className="flex items-start justify-between mb-6">
+                            <div className="flex flex-wrap items-start justify-between gap-y-4 mb-6">
                                 <div className="flex items-center gap-2">
                                     <span className="p-2 rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/30">
                                         <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
@@ -187,8 +187,8 @@ export default function PricingPage() {
                                 onClick={handleSubscribe}
                                 disabled={isLoadingCheckout || user?.is_premium}
                                 className={`w-full py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all transform hover:scale-[1.02] shadow-xl mb-8 group/btn flex items-center justify-center gap-2 relative overflow-hidden ${user?.is_premium
-                                        ? 'bg-green-600 text-white cursor-default'
-                                        : 'bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-500 hover:to-orange-500 text-white shadow-purple-500/40'
+                                    ? 'bg-green-600 text-white cursor-default'
+                                    : 'bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 hover:from-purple-500 hover:to-orange-500 text-white shadow-purple-500/40'
                                     }`}
                             >
                                 <span className="relative z-10">{isLoadingCheckout ? 'Processando...' : user?.is_premium ? 'Plano Ativo ✅' : 'Quero Ser Pro'}</span>
