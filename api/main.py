@@ -22,6 +22,7 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 import os
 import time
+import structlog
 from utils.logging_config import logger
 
 from core.pipeline import carregar_dados_completos
