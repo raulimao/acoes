@@ -111,43 +111,43 @@ export default function PricingPage() {
                 </motion.div>
 
                 {/* Pricing Cards Container */}
-                <div className="grid md:grid-cols-2 gap-6 lg:gap-8 w-full max-w-4xl mx-auto items-stretch">
+                <div className="grid md:grid-cols-2 gap-8 lg:gap-10 w-full max-w-5xl mx-auto items-stretch">
 
                     {/* Basic Plan */}
                     <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: 0.4 }}
-                        className="w-full flex flex-col p-6 lg:p-8 rounded-3xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm"
+                        className="w-full flex flex-col p-10 rounded-[32px] bg-white/5 border border-white/5 hover:border-white/10 transition-colors backdrop-blur-sm"
                     >
-                        {/* Header Box - Fixed Height for Alignment */}
-                        <div className="border-b border-white/10 pb-6 mb-6 min-h-[180px] flex flex-col justify-between">
+                        {/* Header Box */}
+                        <div className="border-b border-white/10 pb-8 mb-8 min-h-[160px] flex flex-col justify-between">
                             <div>
-                                <h3 className="text-xl font-semibold text-gray-400 mb-2">Iniciante</h3>
+                                <h3 className="text-2xl font-semibold text-gray-400 mb-3">Iniciante</h3>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl lg:text-5xl font-bold text-white tracking-tight">R$ 0</span>
+                                    <span className="text-5xl font-bold text-white tracking-tight">R$ 0</span>
                                     <span className="text-gray-500 text-lg font-medium">/mês</span>
                                 </div>
-                                <p className="mt-2 text-sm text-gray-500 leading-snug">
+                                <p className="mt-3 text-sm text-gray-500 leading-relaxed pr-4">
                                     Acesso limitado para conhecer a plataforma e ferramentas básicas.
                                 </p>
                             </div>
                         </div>
 
                         {/* Button Area */}
-                        <div className="mb-6">
+                        <div className="mb-8">
                             <button
                                 disabled
-                                className="w-full py-3.5 rounded-xl font-bold bg-white/5 text-gray-500 cursor-not-allowed border border-white/5 uppercase text-sm tracking-wide transition-colors hover:bg-white/10"
+                                className="w-full py-4 rounded-xl font-bold bg-white/5 text-gray-500 cursor-not-allowed border border-white/5 uppercase text-sm tracking-wide transition-colors hover:bg-white/10"
                             >
                                 Seu Plano Atual
                             </button>
                         </div>
 
                         {/* Features List */}
-                        <ul className="space-y-3.5 flex-1">
+                        <ul className="space-y-4 flex-1">
                             {features.map((feature, i) => (
-                                <li key={i} className="flex items-start gap-3 text-sm group min-h-[24px]">
+                                <li key={i} className="flex items-start gap-4 text-sm group min-h-[24px]">
                                     {feature.free ? (
                                         <div className="mt-0.5 min-w-[20px]">
                                             <Check className="w-5 h-5 text-gray-500 shrink-0 group-hover:text-gray-300 transition-colors" />
@@ -173,43 +173,43 @@ export default function PricingPage() {
                         className="w-full relative group flex flex-col"
                     >
                         {/* Glowing Border Effect */}
-                        <div className="absolute -inset-[2px] bg-gradient-to-tr from-purple-600 via-pink-600 to-amber-500 rounded-[26px] blur-[8px] opacity-60 group-hover:opacity-100 transition duration-500 animate-pulse-slow"></div>
+                        <div className="absolute -inset-[2px] bg-gradient-to-tr from-purple-600 via-pink-600 to-amber-500 rounded-[34px] blur-[12px] opacity-60 group-hover:opacity-100 transition duration-500 animate-pulse-slow"></div>
 
-                        <div className="relative rounded-[24px] bg-[#13141f] h-full flex flex-col overflow-hidden border border-white/10 p-6 lg:p-8">
+                        <div className="relative rounded-[32px] bg-[#13141f] h-full flex flex-col overflow-hidden border border-white/10 p-10">
                             {/* Top Gradient Line */}
-                            <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-purple-500 to-pink-500 h-1"></div>
+                            <div className="absolute top-0 left-0 w-full bg-gradient-to-r from-purple-500 to-pink-500 h-1.5"></div>
 
                             {/* Recommended Badge */}
-                            <div className="absolute top-5 right-5 z-20">
-                                <span className="px-3 py-1 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full shadow-lg shadow-amber-500/20 flex items-center gap-1">
-                                    <Crown className="w-3 h-3 fill-black" /> Recomendado
+                            <div className="absolute top-6 right-6 z-20">
+                                <span className="px-3 py-1.5 bg-gradient-to-r from-amber-400 to-orange-500 text-black text-[10px] md:text-xs font-black uppercase tracking-wider rounded-full shadow-lg shadow-amber-500/20 flex items-center gap-1">
+                                    <Crown className="w-3.5 h-3.5 fill-black" /> Recomendado
                                 </span>
                             </div>
 
-                            {/* Header Box - Matches Height */}
-                            <div className="border-b border-white/10 pb-6 mb-6 min-h-[180px] flex flex-col justify-between relative z-10">
+                            {/* Header Box */}
+                            <div className="border-b border-white/10 pb-8 mb-8 min-h-[160px] flex flex-col justify-between relative z-10">
                                 <div>
-                                    <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-2">
-                                        <Zap className="w-5 h-5 text-amber-400 fill-amber-400" /> Investidor Pro
+                                    <h3 className="text-2xl font-bold text-white flex items-center gap-2 mb-3">
+                                        <Zap className="w-6 h-6 text-amber-400 fill-amber-400" /> Investidor Pro
                                     </h3>
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl lg:text-5xl font-bold text-white tracking-tight">R$ 29,90</span>
+                                        <span className="text-5xl font-bold text-white tracking-tight">R$ 29,90</span>
                                         <span className="text-gray-400 text-lg font-medium">/mês</span>
                                     </div>
-                                    <p className="mt-2 text-sm text-purple-200/80 leading-snug">
+                                    <p className="mt-3 text-sm text-purple-200/80 leading-relaxed pr-4">
                                         Todas as ferramentas liberadas. Análise IA, Rankings e Carteiras recomendadas.
                                     </p>
                                 </div>
                             </div>
 
                             {/* Button Area */}
-                            <div className="mb-6 relative z-10">
+                            <div className="mb-8 relative z-10">
                                 <button
                                     onClick={handleSubscribe}
                                     disabled={isLoadingCheckout || user?.is_premium}
-                                    className={`w-full py-3.5 rounded-xl font-black text-sm md:text-base uppercase tracking-wider transition-all transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2 relative overflow-hidden group/btn ${user?.is_premium
-                                            ? 'bg-green-600 text-white cursor-default'
-                                            : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-purple-500/25'
+                                    className={`w-full py-4 rounded-xl font-black text-sm md:text-base uppercase tracking-wider transition-all transform hover:scale-[1.02] shadow-xl flex items-center justify-center gap-2 relative overflow-hidden group/btn ${user?.is_premium
+                                        ? 'bg-green-600 text-white cursor-default'
+                                        : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white shadow-purple-500/25'
                                         }`}
                                 >
                                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300 skew-y-12"></div>
@@ -217,16 +217,16 @@ export default function PricingPage() {
                                     {(!isLoadingCheckout && !user?.is_premium) && <Crown className="w-4 h-4 mb-0.5 relative z-10" />}
                                 </button>
 
-                                <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] text-gray-400 font-medium">
-                                    <Shield className="w-3 h-3 text-green-500" /> 7 dias de garantia ou reembolso
+                                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
+                                    <Shield className="w-3.5 h-3.5 text-green-500" /> 7 dias de garantia ou reembolso
                                 </div>
                             </div>
 
                             {/* Features List */}
                             <div className="flex-1 relative z-10">
-                                <ul className="space-y-3.5">
+                                <ul className="space-y-4">
                                     {features.map((feature, i) => (
-                                        <li key={i} className="flex items-start gap-3 text-sm min-h-[24px]">
+                                        <li key={i} className="flex items-start gap-4 text-sm min-h-[24px]">
                                             {feature.premium ? (
                                                 <div className="mt-0.5 min-w-[20px] rounded-full bg-green-500/10 flex items-center justify-center w-5 h-5">
                                                     <Check className="w-3.5 h-3.5 text-green-400 stroke-[3]" />
