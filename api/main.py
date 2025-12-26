@@ -33,7 +33,10 @@ from services.auth_service import add_user, verify_user, get_user_by_email, init
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
+from fastapi.responses import StreamingResponse
 from config.strategies_config import ESTRATEGIAS, FILTROS
+from fpdf import FPDF
+import io
 
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "topacoes-secret-key-change-in-production")
@@ -1576,7 +1579,131 @@ def get_suggested_portfolio(request: PortfolioRequest):
     }
 
 
+
+# ============================================
+# RELATÓRIO PDF GENERATOR
+# ============================================
+
+class PDFReport(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 15)
+        self.cell(0, 10, 'TopAções - Relatório Semanal de Mercado', 0, 1, 'C')
+        self.ln(5)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Página {self.page_no()}', 0, 0, 'C')
+
+@app.get("/api/reports/weekly")
+async def generate_weekly_report(current_user: dict = Depends(get_current_user)):
+    """
+    Gera um relatório PDF semanal com os destaques do mercado.
+    Apenas para usuários Premium.
+    """
+    if not current_user.get("is_premium"):
+        raise HTTPException(status_code=403, detail="Apenas usuários Premium podem baixar relatórios.")
+
+    try:
+        df = get_stock_data()
+        if df.empty:
+            raise HTTPException(status_code=404, detail="Dados de mercado indisponíveis")
+
+        pdf = PDFReport()
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+
+        # 1. Resumo de Mercado
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, txt=f"Resumo da Semana - {datetime.now().strftime('%d/%m/%Y')}", ln=True)
+        pdf.ln(5)
+        
+        pdf.set_font("Arial", size=11)
+        total_analisadas = len(df)
+        media_pl = df['p_l'].mean()
+        media_dy = df['dividend_yield'].mean()
+        
+        resumo = f"""
+        Total de ações analisadas: {total_analisadas}
+        Média P/L do mercado: {media_pl:.2f}
+        Média Dividend Yield: {media_dy:.2f}%
+        """
+        pdf.multi_cell(0, 7, txt=resumo)
+        pdf.ln(5)
+
+        # 2. Top 5 Super Score
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, txt="🏆 Top 5 Ações (Super Score)", ln=True)
+        pdf.ln(5)
+        
+        pdf.set_font("Arial", size=10)
+        top_5 = df.nlargest(5, 'super_score')
+        
+        # Table Header
+        pdf.set_fill_color(200, 220, 255)
+        pdf.cell(30, 10, "Ticker", 1, 0, 'C', 1)
+        pdf.cell(40, 10, "Setor", 1, 0, 'C', 1)
+        pdf.cell(30, 10, "Preço", 1, 0, 'C', 1)
+        pdf.cell(30, 10, "Score", 1, 0, 'C', 1)
+        pdf.cell(30, 10, "D.Yield", 1, 1, 'C', 1)
+        
+        # Table Rows
+        for _, row in top_5.iterrows():
+            pdf.cell(30, 10, str(row['papel']), 1, 0, 'C')
+            pdf.cell(40, 10, str(row['setor'])[:15], 1, 0, 'C') # Truncate sector
+            pdf.cell(30, 10, f"R$ {row['cotacao']:.2f}", 1, 0, 'C')
+            pdf.cell(30, 10, f"{row['super_score']:.1f}", 1, 0, 'C')
+            pdf.cell(30, 10, f"{row['dividend_yield']:.1f}%", 1, 1, 'C')
+            
+        pdf.ln(10)
+
+        # 3. Top Dividendos
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, txt="💰 Top 5 Dividendos", ln=True)
+        pdf.ln(5)
+        
+        pdf.set_font("Arial", size=10)
+        top_dy = df.nlargest(5, 'dividend_yield')
+        
+        # Table Header
+        pdf.set_fill_color(200, 255, 220)
+        pdf.cell(30, 10, "Ticker", 1, 0, 'C', 1)
+        pdf.cell(40, 10, "Setor", 1, 0, 'C', 1)
+        pdf.cell(30, 10, "Preço", 1, 0, 'C', 1)
+        pdf.cell(30, 10, "P/L", 1, 0, 'C', 1)
+        pdf.cell(30, 10, "D.Yield", 1, 1, 'C', 1)
+        
+        # Table Rows
+        for _, row in top_dy.iterrows():
+            pdf.cell(30, 10, str(row['papel']), 1, 0, 'C')
+            pdf.cell(40, 10, str(row['setor'])[:15], 1, 0, 'C')
+            pdf.cell(30, 10, f"R$ {row['cotacao']:.2f}", 1, 0, 'C')
+            pdf.cell(30, 10, f"{row['p_l']:.1f}", 1, 0, 'C')
+            pdf.cell(30, 10, f"{row['dividend_yield']:.1f}%", 1, 1, 'C')
+
+        pdf.ln(10)
+        pdf.set_font("Arial", "I", 10)
+        pdf.multi_cell(0, 7, txt="Nota: Este relatório é gerado automaticamente com base em dados fundamentalistas públicos. Não constitui recomendação de compra ou venda.")
+
+        # Output
+        pdf_content = pdf.output(dest='S').encode('latin-1')
+        buffer = io.BytesIO(pdf_content)
+        buffer.seek(0)
+        
+        filename = f"topacoes_report_{datetime.now().strftime('%Y%m%d')}.pdf"
+        
+        return StreamingResponse(
+            buffer, 
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+        
+    except Exception as e:
+        logger.error("pdf_generation_failed", error=str(e))
+        raise HTTPException(status_code=500, detail="Erro ao gerar relatório PDF")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
 
