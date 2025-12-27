@@ -42,7 +42,9 @@ export default function EngagementWidgets() {
 
         try {
             setLoading(true);
+            const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/reports/weekly`, {
+                headers: { Authorization: `Bearer ${token}` },
                 responseType: 'blob', // Important: response as binary data
             });
 
