@@ -1501,20 +1501,7 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
     except Exception as e:
         logger.error("pdf_generation_failed", error=str(e))
         raise HTTPException(status_code=500, detail="Erro ao gerar relatório PDF")
-        buffer = io.BytesIO(pdf_content)
-        buffer.seek(0)
-        
-        filename = f"topacoes_report_{datetime.now().strftime('%Y%m%d')}.pdf"
-        
-        return StreamingResponse(
-            buffer, 
-            media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-        
-    except Exception as e:
-        logger.error("pdf_generation_failed", error=str(e))
-        raise HTTPException(status_code=500, detail="Erro ao gerar relatório PDF")
+
 
 if __name__ == "__main__":
     import uvicorn
