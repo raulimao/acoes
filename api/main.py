@@ -1633,7 +1633,7 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
 
         # 2. Top 5 Super Score
         pdf.set_font("Arial", "B", 14)
-        pdf.cell(200, 10, txt="🏆 Top 5 Ações (Super Score)", ln=True)
+        pdf.cell(200, 10, txt="Top 5 - Super Score", ln=True)
         pdf.ln(5)
         
         pdf.set_font("Arial", size=10)
@@ -1659,7 +1659,7 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
 
         # 3. Top Dividendos
         pdf.set_font("Arial", "B", 14)
-        pdf.cell(200, 10, txt="💰 Top 5 Dividendos", ln=True)
+        pdf.cell(200, 10, txt="Top 5 - Dividendos", ln=True)
         pdf.ln(5)
         
         pdf.set_font("Arial", size=10)
@@ -1686,7 +1686,8 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
         pdf.multi_cell(0, 7, txt="Nota: Este relatório é gerado automaticamente com base em dados fundamentalistas públicos. Não constitui recomendação de compra ou venda.")
 
         # Output
-        pdf_content = pdf.output(dest='S').encode('latin-1')
+        # Output
+        pdf_content = pdf.output()  # fpdf2 returns bytes directly
         buffer = io.BytesIO(pdf_content)
         buffer.seek(0)
         
