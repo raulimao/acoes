@@ -34,12 +34,31 @@ export default function EngagementWidgets() {
         }
     };
 
-    const downloadReport = () => {
-        if (user?.is_premium) {
-            window.open(`${API_URL}/reports/weekly`, '_blank');
-        } else {
+    const downloadReport = async () => {
+        if (!user?.is_premium) {
             alert("🔒 Recurso Premium: Assine o Pro para baixar relatórios semanais em PDF.");
-            // In a real app, open a modal or redirect to pricing
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await axios.get(`${API_URL}/reports/weekly`, {
+                responseType: 'blob', // Important: response as binary data
+            });
+
+            // Create blob link to download
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'relatorio_semanal.pdf');
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode?.removeChild(link);
+        } catch (error) {
+            console.error('Error downloading report:', error);
+            alert("Erro ao baixar relatório. Tente novamente.");
+        } finally {
+            setLoading(false);
         }
     };
 
