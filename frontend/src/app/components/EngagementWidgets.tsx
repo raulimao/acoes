@@ -111,29 +111,52 @@ export default function EngagementWidgets() {
                 </div>
             </div>
 
-            {/* Weekly Report Widget */}
-            <div className={`relative rounded-xl p-6 border flex flex-col justify-between overflow-hidden ${user?.is_premium
-                ? 'bg-gradient-to-br from-purple-900 to-indigo-900 border-purple-700'
-                : 'bg-gray-900 border-gray-700 opacity-80'
+            {/* Weekly Report Widget (Market Intelligence Style) */}
+            <div className={`relative rounded-xl p-6 border flex flex-col justify-between overflow-hidden group ${user?.is_premium
+                ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 border-purple-500/50 shadow-lg shadow-purple-900/20'
+                : 'bg-gray-900 border-gray-700 opacity-90'
                 }`}>
+
+                {/* Decorative Background Elements */}
+                {user?.is_premium && (
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl -mr-16 -mt-16 transition-all group-hover:bg-purple-500/20" />
+                )}
+
                 <div>
-                    <h3 className="text-xl font-bold text-white mb-2 flex items-center justify-between">
-                        📄 Relatório Semanal
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="bg-amber-900/30 text-amber-200 border border-amber-500/30 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded-full">
+                                Market Intelligence
+                            </span>
+                        </div>
                         {!user?.is_premium && <Lock className="w-5 h-5 text-gray-500" />}
+                    </div>
+
+                    <h3 className="text-xl font-bold text-white mb-2 leading-tight">
+                        Relatório de Mercado <span className="text-purple-400">Semanal</span>
                     </h3>
-                    <p className={`${user?.is_premium ? 'text-purple-200' : 'text-gray-400'} text-sm mb-4`}>
-                        Baixe o resumo completo do mercado, Top 10 e carteiras sugeridas em PDF.
+
+                    <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                        Acesse análises exclusivas, gráficos de valuation setorial e o Top 10 Ações segundo nosso algoritmo.
                     </p>
                 </div>
 
                 <button
                     onClick={downloadReport}
-                    className={`w-full font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${user?.is_premium
-                        ? 'bg-white text-purple-900 hover:bg-purple-100'
-                        : 'bg-gray-700 text-gray-400 cursor-not-allowed hover:bg-gray-600'
+                    disabled={loading}
+                    className={`w-full font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 group-hover:translate-y-[-2px] ${user?.is_premium
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/40'
+                        : 'bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-700'
                         }`}
                 >
-                    <span>{user?.is_premium ? '📥 Baixar PDF' : '🔒 Bloqueado (Pro)'}</span>
+                    {loading ? (
+                        <span className="animate-pulse">Gerando PDF...</span>
+                    ) : (
+                        <>
+                            <span>{user?.is_premium ? 'Baixar Análise PDF' : 'Desbloquear Acesso Pro'}</span>
+                            {user?.is_premium && <span className="text-lg">DOWNLOAD</span>}
+                        </>
+                    )}
                 </button>
             </div>
         </div>
