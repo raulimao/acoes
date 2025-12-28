@@ -183,7 +183,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
             default:
                 return true;
         }
-    }).slice(0, isPremium ? 15 : 3); // Free users see only 3
+    }).slice(0, isPremium ? undefined : 3); // Free: 3, Premium: ALL
 
     const getRiskConfig = (level: RiskLevel) => {
         switch (level) {

@@ -139,12 +139,34 @@ export default function Dashboard() {
       // Premium users see all stocks
       setDisplayedStocks(stocks);
     } else {
-      // Free users see 3 random stocks from ranking 16+ (NOT the top 15)
-      // This prevents free users from seeing the best opportunities
-      const belowTop15 = stocks.slice(15, 50); // Get stocks ranked 16-50
+      // Free users see 3 fixed stocks from ranking 16+ (NOT the top 15)
+      // Selection is FIXED for the entire week, changes every Sunday
+
+      // Get current week number (resets on Sunday)
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const dayOfYear = Math.floor((now.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      const weekNumber = Math.floor((dayOfYear + startOfYear.getDay()) / 7);
+
+      // Create a seed from year + week number
+      const seed = now.getFullYear() * 100 + weekNumber;
+
+      // Seeded random function (deterministic based on seed)
+      const seededRandom = (index: number) => {
+        const x = Math.sin(seed + index) * 10000;
+        return x - Math.floor(x);
+      };
+
+      // Get stocks ranked 16-50
+      const belowTop15 = stocks.slice(15, 50);
+
       if (belowTop15.length >= 3) {
-        // Shuffle and take 3
-        const shuffled = [...belowTop15].sort(() => Math.random() - 0.5);
+        // Sort using seeded random (same order every time this week)
+        const shuffled = [...belowTop15]
+          .map((stock, i) => ({ stock, sort: seededRandom(i) }))
+          .sort((a, b) => a.sort - b.sort)
+          .map(item => item.stock);
+
         setDisplayedStocks(shuffled.slice(0, 3));
       } else if (belowTop15.length > 0) {
         setDisplayedStocks(belowTop15);
