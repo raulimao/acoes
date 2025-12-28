@@ -24,8 +24,9 @@ interface StockCardProps {
 }
 
 export default function StockCard({ stock, index, isPremium, onClick, isSelected, onToggleSelect }: StockCardProps) {
-    // Ruthless Freemium: Only Top 1 is free. Index 0 is free.
-    const isLocked = !isPremium && index > 0;
+    // Note: Lock logic removed. The page.tsx now controls how many cards to display.
+    // Free users see 3 random stocks, premium users see all.
+    const isLocked = false; // Always show cards that are passed to this component
 
     const getScoreColor = (score: number) => {
         if (score >= 12) return 'score-high';

@@ -257,8 +257,7 @@ export default function Dashboard() {
   // Kill List: Removed History, Strategies, and Onboarding for simplified MVP
 
   const tabs = [
-    { id: 'overview', label: 'Ranking Geral', icon: Zap }, // Renamed from "Visão Geral" to "Ranking Geral" for clarity
-    { id: 'ranking', label: 'Top 3', icon: Trophy },
+    { id: 'overview', label: 'Ranking', icon: Zap },
     { id: 'anti-ranking', label: 'Ações Tóxicas', icon: Skull },
   ];
 
@@ -446,6 +445,14 @@ export default function Dashboard() {
                 {/* Engagement Widgets (Alerts & Reports) */}
                 <EngagementWidgets />
 
+                {/* Top 3 Podium - Only for Premium Users */}
+                {user?.is_premium && (
+                  <Top3Podium
+                    stocks={stocks}
+                    onSelectStock={setSelectedStock}
+                  />
+                )}
+
                 {/* Premium Filters Component */}
                 <PremiumFilters
                   isPremium={user?.is_premium || false}
@@ -548,59 +555,6 @@ export default function Dashboard() {
                   isPremium={user?.is_premium || false}
                   onSelectStock={setSelectedStock}
                 />
-              </motion.div>
-            )}
-
-
-
-            {/* Ranking Tab */}
-            {activeTab === 'ranking' && (
-              <motion.div
-                key="ranking"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-              >
-                {/* New Top 3 Podium Component */}
-                <Top3Podium
-                  stocks={stocks}
-                  onSelectStock={setSelectedStock}
-                />
-
-                {/* Full ranking table - Premium Only */}
-                <div className="card">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold">Ranking Completo</h3>
-                    {!user?.is_premium && (
-                      <div className="flex items-center gap-2 text-yellow-400 text-sm">
-                        <Lock className="w-4 h-4" />
-                        <span>Tabela completa apenas para assinantes</span>
-                      </div>
-                    )}
-                  </div>
-                  {user?.is_premium ? (
-                    <StockTable stocks={stocks} onSelect={setSelectedStock} showRank />
-                  ) : (
-                    <div className="relative">
-                      <div className="blur-sm opacity-50 pointer-events-none">
-                        <StockTable stocks={stocks.slice(0, 5)} onSelect={() => { }} showRank />
-                      </div>
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
-                        <div className="text-center">
-                          <Lock className="w-12 h-12 text-yellow-400 mx-auto mb-3" />
-                          <p className="text-lg font-bold text-white mb-2">Ranking Completo Bloqueado</p>
-                          <p className="text-sm text-white/60 mb-4">Veja as {stocks.length}+ ações ranqueadas</p>
-                          <button
-                            onClick={() => router.push('/pricing')}
-                            className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg hover:scale-105 transition-transform"
-                          >
-                            Desbloquear Ranking
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </motion.div>
             )}
 
