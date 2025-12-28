@@ -42,6 +42,12 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
     df = df.dropna(subset=['super_score'])
     df = df[df['super_score'] > 0]
     
+    # Clean sector data - remove N/A, NA, empty strings, None
+    if 'setor' in df.columns:
+        df = df[df['setor'].notna()]
+        df = df[~df['setor'].isin(['N/A', 'NA', 'n/a', 'na', '', ' ', 'None', 'null'])]
+        df = df[df['setor'].str.strip() != '']
+    
     # Create PDF in memory with Full HD aspect ratio
     buffer = io.BytesIO()
     

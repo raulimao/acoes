@@ -71,19 +71,20 @@ export default function StockCard({ stock, index, isPremium, onClick, isSelected
                 </div>
             </div>
 
-            {/* Battle Selection - Only appears on hover */}
+            {/* Battle Selection Button - Always Visible */}
             {onToggleSelect && (
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         onToggleSelect(stock);
                     }}
-                    className={`mt-3 w-full py-2 rounded-lg text-xs font-bold transition-all ${isSelected
-                            ? 'bg-yellow-400 text-black'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+                    className={`mt-3 w-full py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${isSelected
+                        ? 'bg-yellow-400 text-black border-2 border-yellow-300'
+                        : 'bg-purple-600/30 text-purple-300 border border-purple-500/50 hover:bg-purple-600/50 hover:text-white'
                         }`}
                 >
-                    {isSelected ? '✓ Selecionado' : 'Comparar'}
+                    <Zap className="w-4 h-4" />
+                    {isSelected ? '✓ Selecionado para Batalha' : '⚔️ Comparar Ação'}
                 </button>
             )}
         </motion.div>
