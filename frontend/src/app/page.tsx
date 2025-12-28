@@ -546,7 +546,15 @@ export default function Dashboard() {
                 exit={{ opacity: 0, y: -20 }}
               >
                 <ToxicStocks
-                  stocks={stocks}
+                  stocks={stocks
+                    .filter(s =>
+                      (s.super_score !== undefined && s.super_score < 10) ||
+                      (s.p_l !== undefined && s.p_l < 0) ||
+                      (s.roe !== undefined && s.roe < 0) ||
+                      (s.div_bruta_patrimonio !== undefined && s.div_bruta_patrimonio > 2)
+                    )
+                    .sort((a, b) => (a.super_score || 0) - (b.super_score || 0))
+                  }
                   isPremium={user?.is_premium || false}
                   onSelectStock={setSelectedStock}
                 />
