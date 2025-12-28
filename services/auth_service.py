@@ -71,6 +71,53 @@ def get_user_by_email(email: str):
         return None
 
 
+def ensure_profile_exists(email: str) -> bool:
+    """
+    Ensure profile exists in database, create from auth.users if missing.
+    This fixes the issue where OAuth users exist in auth.users but not in profiles.
+    
+    Args:
+        email: User email to check/create profile for
+        
+    Returns:
+        True if profile exists or was created, False on error
+    """
+    try:
+        client = get_supabase_client()
+        
+        # Check if profile exists
+        existing = client.table("profiles").select("id").ilike("email", email).maybe_single().execute()
+        if existing.data:
+            return True
+        
+        # Profile missing - get user from auth.users
+        users = client.auth.admin.list_users()
+        for user in users:
+            if user.email and user.email.lower() == email.lower():
+                # Create profile from auth data
+                name = (user.user_metadata or {}).get("name") or \
+                       (user.user_metadata or {}).get("full_name") or \
+                       email
+                username = (user.user_metadata or {}).get("username") or \
+                           email.split("@")[0]
+                
+                client.table("profiles").upsert({
+                    "id": user.id,
+                    "email": user.email,
+                    "name": name,
+                    "username": username,
+                    "is_premium": False
+                }).execute()
+                print(f"Created missing profile for OAuth user: {email}")
+                return True
+        
+        print(f"No auth user found for email: {email}")
+        return False
+    except Exception as e:
+        print(f"Error ensuring profile exists: {e}")
+        return False
+
+
 def add_user(username: str, name: str, email: str, password: str = None, is_premium: bool = False) -> bool:
     """
     Add a new user profile to Supabase (for OAuth users).

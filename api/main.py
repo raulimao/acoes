@@ -30,7 +30,7 @@ from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
 
 
-from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user, resend_confirmation_email
+from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user, resend_confirmation_email, ensure_profile_exists
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
@@ -469,6 +469,8 @@ async def stripe_webhook(request: Request):
             
         if email:
             logger.info("payment_success", email=email, amount=session.get('amount_total'))
+            # Ensure profile exists before updating (fix for OAuth users)
+            ensure_profile_exists(email)
             success = update_user_premium(email, True)
             if success:
                 logger.info("user_upgraded", email=email)
