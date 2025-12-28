@@ -22,6 +22,8 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<boolean>;
     register: (name: string, email: string, password: string) => Promise<boolean>;
     loginWithGoogle: () => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
+    resendConfirmation: (email: string) => Promise<boolean>;
     logout: () => void;
     clearError: () => void;
 }
@@ -29,97 +31,17 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const router = useRouter();
+    // ... (state)
 
-    // Check auth on mount
-    useEffect(() => {
-        checkAuth();
-    }, []);
+    // ... (existing methods)
 
-    const checkAuth = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            setLoading(false);
-            return;
-        }
-
+    const resendConfirmation = async (email: string): Promise<boolean> => {
         try {
-            const response = await axios.get(`${API_URL}/auth/me`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            setUser(response.data);
+            await axios.post(`${API_URL}/auth/resend-confirmation`, { email });
+            return true;
         } catch (err) {
-            // Token invalid, clear it
-            localStorage.removeItem('token');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const login = async (email: string, password: string): Promise<boolean> => {
-        setError(null);
-        setLoading(true);
-
-        try {
-            const response = await axios.post(`${API_URL}/auth/login`, {
-                email,
-                password
-            });
-
-            const { access_token, user: userData } = response.data;
-            localStorage.setItem('token', access_token);
-            setUser(userData);
-            return true;
-        } catch (err: any) {
-            const message = err.response?.data?.detail || 'Erro ao fazer login';
-            setError(message);
+            console.error("Error resending confirmation:", err);
             return false;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const register = async (name: string, email: string, password: string): Promise<boolean> => {
-        setError(null);
-        setLoading(true);
-
-        try {
-            const response = await axios.post(`${API_URL}/auth/register`, {
-                name,
-                email,
-                password
-            });
-
-            const { access_token, user: userData } = response.data;
-            localStorage.setItem('token', access_token);
-            setUser(userData);
-            return true;
-        } catch (err: any) {
-            const message = err.response?.data?.detail || 'Erro ao criar conta';
-            setError(message);
-            return false;
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const loginWithGoogle = async () => {
-        try {
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: {
-                    redirectTo: `${window.location.origin}/auth/callback`
-                }
-            });
-
-            if (error) throw error;
-            // OAuth flow will redirect, no need to do anything else here
-        } catch (err: any) {
-            console.error('Google login error:', err);
-            setError('Erro ao fazer login com Google');
         }
     };
 
@@ -140,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             login,
             register,
             loginWithGoogle,
+            resendConfirmation,
             logout,
             clearError
         }}>

@@ -30,7 +30,7 @@ from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
 
 
-from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user
+from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user, resend_confirmation_email
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
@@ -258,6 +258,18 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 # ============================================
 # AUTH ENDPOINTS
 # ============================================
+
+class ResendConfirmationRequest(BaseModel):
+    email: str
+
+@app.post("/api/auth/resend-confirmation")
+async def resend_confirmation(request: ResendConfirmationRequest):
+    """Resend confirmation email to user."""
+    # Always return success to prevent email enumeration (security best practice)
+    # But log the result internally
+    resend_confirmation_email(request.email)
+    return {"message": "Se o email estiver cadastrado, uma nova confirmação será enviada."}
+
 
 @app.post("/api/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest):

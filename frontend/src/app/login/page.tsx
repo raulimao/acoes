@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, register, loginWithGoogle, isAuthenticated, loading: authLoading, error, clearError } = useAuth();
+    const { login, register, loginWithGoogle, resendConfirmation, isAuthenticated, loading: authLoading, error, clearError } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -321,6 +321,26 @@ export default function LoginPage() {
                                 </>
                             )}
                         </motion.button>
+
+                        {/* Resend Confirmation Link (Login Mode Only) */}
+                        {isLogin && (
+                            <div className="mt-4 text-center">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (!formData.email) {
+                                            alert("Preencha o campo de email acima.");
+                                            return;
+                                        }
+                                        const sent = await resendConfirmation(formData.email);
+                                        if (sent) alert("Email de confirmação reenviado! Verifique sua caixa de entrada.");
+                                    }}
+                                    className="text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4"
+                                >
+                                    Não recebeu o email de confirmação? Reenviar
+                                </button>
+                            </div>
+                        )}
                     </form>
 
                     {/* Divider */}

@@ -236,8 +236,27 @@ def verify_user(email: str, password: str):
         if "email not confirmed" in error_msg:
             raise Exception("EmailNotConfirmed")
         
-        print(f"Error verifying user: {e}")
+        print(f"Error verifying user: {e}") # Keep this for debugging
         return None
+
+
+def resend_confirmation_email(email: str) -> bool:
+    """
+    Resend the signup confirmation email to the user.
+    """
+    try:
+        client = get_supabase_client()
+        client.auth.resend({
+            "type": "signup",
+            "email": email,
+            "options": {
+                "emailRedirectTo": f"{os.getenv('NEXT_PUBLIC_APP_URL', 'http://localhost:3000')}/auth/callback"
+            }
+        })
+        return True
+    except Exception as e:
+        print(f"Error resending confirmation: {e}")
+        return False
 
 
 def get_user(username: str):
