@@ -78,7 +78,7 @@ export default function PrivacyPage() {
                 </div>
 
                 <div className="mt-20 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-                    <p>Dúvidas? Entre em contato: suporte@topacoes.com</p>
+                    <p>Dúvidas? Entre em contato: suporte@norteacoes.com</p>
                 </div>
             </div>
         </div>

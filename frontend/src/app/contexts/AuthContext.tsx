@@ -22,7 +22,6 @@ interface AuthContextType {
     login: (email: string, password: string) => Promise<boolean>;
     register: (name: string, email: string, password: string) => Promise<boolean>;
     loginWithGoogle: () => Promise<void>;
-    loginWithGoogle: () => Promise<void>;
     resendConfirmation: (email: string) => Promise<boolean>;
     logout: () => void;
     clearError: () => void;
@@ -31,9 +30,73 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-    // ... (state)
+    const router = useRouter();
+    const [user, setUser] = useState<User | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // ... (existing methods)
+    // Check for existing session on mount
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetchUser(token);
+        } else {
+            setLoading(false);
+        }
+    }, []);
+
+    const fetchUser = async (token: string) => {
+        try {
+            const { data } = await axios.get(`${API_URL}/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUser(data);
+        } catch (err) {
+            localStorage.removeItem('token');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const login = async (email: string, password: string): Promise<boolean> => {
+        setError(null);
+        try {
+            const { data } = await axios.post(`${API_URL}/auth/login`, { email, password });
+            localStorage.setItem('token', data.access_token);
+            await fetchUser(data.access_token);
+            return true;
+        } catch (err: any) {
+            const message = err.response?.data?.detail || 'Erro ao fazer login';
+            setError(message);
+            return false;
+        }
+    };
+
+    const register = async (name: string, email: string, password: string): Promise<boolean> => {
+        setError(null);
+        try {
+            await axios.post(`${API_URL}/auth/register`, { name, email, password });
+            // After registration, show success message - user needs to confirm email
+            setError('Conta criada! Verifique seu email para confirmar.');
+            return true;
+        } catch (err: any) {
+            const message = err.response?.data?.detail || 'Erro ao criar conta';
+            setError(message);
+            return false;
+        }
+    };
+
+    const loginWithGoogle = async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`
+            }
+        });
+        if (error) {
+            setError(error.message);
+        }
+    };
 
     const resendConfirmation = async (email: string): Promise<boolean> => {
         try {

@@ -1,5 +1,5 @@
 """
-FastAPI Backend for TopAções Dashboard
+FastAPI Backend for NorteAcoes Dashboard
 Serves stock data, strategies, and history via REST API
 """
 import sys
@@ -492,7 +492,7 @@ async def stripe_webhook(request: Request):
 @app.get("/")
 async def root():
     return {
-        "name": "TopAções API",
+        "name": "NorteAcoes API",
         "version": "2.0.0",
         "status": "running"
     }
@@ -1286,7 +1286,7 @@ Cotação: R$ {fmt_num(s.get('cotacao', 0))}
     # ========================================
     # SYSTEM PROMPT COMPLETO
     # ========================================
-    system_prompt = f"""Você é o Analista de Investimentos IA do TopAções - o mais completo assistente de análise fundamentalista de ações brasileiras.
+    system_prompt = f"""Você é o Analista de Investimentos IA do NorteAcoes - o mais completo assistente de análise fundamentalista de ações brasileiras.
 {filter_context}
 ═══════════════════════════════════════════════════════
 📊 DADOS COMPLETOS DO MERCADO ({len(df)} ações {f'filtradas' if applied_filters else 'analisadas'})
@@ -1513,7 +1513,7 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
         buffer = io.BytesIO(pdf_bytes)
         buffer.seek(0)
         
-        filename = f"topacoes_report_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"norteacoes_report_{datetime.now().strftime('%Y%m%d')}.pdf"
         
         return StreamingResponse(
             buffer, 
