@@ -9,8 +9,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+# Add project root and api directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent)) # Root (for core, utils)
+sys.path.insert(0, str(Path(__file__).parent))        # API dir (for services)
 
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
