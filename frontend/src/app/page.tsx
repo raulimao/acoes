@@ -138,14 +138,18 @@ export default function Dashboard() {
       // Premium users see all stocks
       setDisplayedStocks(stocks);
     } else {
-      // Free users see 5 random stocks from top 15
-      const top15 = stocks.slice(0, 15);
-      if (top15.length > 5) {
-        // Shuffle and take 5
-        const shuffled = [...top15].sort(() => Math.random() - 0.5);
-        setDisplayedStocks(shuffled.slice(0, 5));
+      // Free users see 3 random stocks from ranking 16+ (NOT the top 15)
+      // This prevents free users from seeing the best opportunities
+      const belowTop15 = stocks.slice(15, 50); // Get stocks ranked 16-50
+      if (belowTop15.length >= 3) {
+        // Shuffle and take 3
+        const shuffled = [...belowTop15].sort(() => Math.random() - 0.5);
+        setDisplayedStocks(shuffled.slice(0, 3));
+      } else if (belowTop15.length > 0) {
+        setDisplayedStocks(belowTop15);
       } else {
-        setDisplayedStocks(top15);
+        // Fallback if not enough stocks
+        setDisplayedStocks(stocks.slice(0, 3));
       }
     }
     setTotalStocksCount(stocks.length);
@@ -479,7 +483,7 @@ export default function Dashboard() {
                               {totalStocksCount - displayedStocks.length}+ ações ocultas
                             </p>
                             <p className="text-sm text-white/60">
-                              Você está vendo 5 ações aleatórias. Desbloqueie todas!
+                              Você está vendo 3 ações aleatórias do ranking. Desbloqueie o Top 15!
                             </p>
                           </div>
                         </div>
@@ -507,32 +511,18 @@ export default function Dashboard() {
                     ))}
                   </div>
 
-                  {/* Blurred placeholder cards for free users */}
-                  {user && !user.is_premium && (
-                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {[1, 2, 3].map((i) => (
-                        <div
-                          key={i}
-                          className="relative rounded-xl bg-slate-800/50 border border-white/10 p-6 overflow-hidden cursor-pointer group"
+                  {/* Simple message below cards for free users */}
+                  {user && !user.is_premium && displayedStocks.length > 0 && (
+                    <div className="mt-6 text-center">
+                      <p className="text-white/40 text-sm">
+                        Mostrando {displayedStocks.length} ações do ranking •
+                        <span
+                          className="text-yellow-400 hover:underline cursor-pointer ml-1"
                           onClick={() => router.push('/pricing')}
                         >
-                          <div className="blur-sm opacity-50">
-                            <div className="h-6 w-20 bg-white/10 rounded mb-2" />
-                            <div className="h-4 w-32 bg-white/5 rounded mb-4" />
-                            <div className="h-12 w-16 bg-cyan-500/20 rounded mb-4" />
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="h-8 bg-white/5 rounded" />
-                              <div className="h-8 bg-white/5 rounded" />
-                            </div>
-                          </div>
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <div className="text-center">
-                              <Lock className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                              <p className="text-sm font-bold text-yellow-400">Clique para desbloquear</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                          Ver todas as {totalStocksCount}+ ações →
+                        </span>
+                      </p>
                     </div>
                   )}
 
