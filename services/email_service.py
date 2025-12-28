@@ -13,7 +13,7 @@ if RESEND_API_KEY:
 else:
     logger.warning("RESEND_API_KEY not set. Emails will be printed to console.")
 
-FROM_EMAIL = "TopAções <onboarding@resend.dev>" # Default dev email, change in prod
+FROM_EMAIL = "NorteAcoes <onboarding@resend.dev>" # Default dev email, change in prod
 
 def send_email(to_email: str, subject: str, html_content: str):
     """
@@ -46,20 +46,20 @@ def send_email(to_email: str, subject: str, html_content: str):
 
 def send_welcome_email(name: str, email: str):
     """Send welcome email to new user."""
-    subject = "Bem-vindo ao TopAções! 🚀"
+    subject = "Bem-vindo ao NorteAcoes! 🚀"
     html = f"""
     <h1>Olá, {name}!</h1>
     <p>Estamos muito felizes em ter você conosco.</p>
-    <p>O TopAções vai te ajudar a encontrar as melhores oportunidades da bolsa com Inteligência Artificial.</p>
+    p>O NorteAcoes vai te ajudar a encontrar as melhores oportunidades da bolsa com Inteligência Artificial.</p>
     <br>
     <p>Se tiver dúvidas, responda este email.</p>
-    <p>Att,<br>Equipe TopAções</p>
+    <p>Att,<br>Equipe NorteAcoes</p>
     """
     return send_email(email, subject, html)
 
 def send_reset_password_email(email: str, reset_link: str):
     """Send password reset link."""
-    subject = "Recuperação de Senha - TopAções"
+    subject = "Recuperação de Senha - NorteAcoes"
     html = f"""
     <h2>Recuperação de Senha</h2>
     <p>Você solicitou a redefinição de sua senha.</p>
@@ -77,7 +77,7 @@ def send_payment_success_email(email: str, amount: int):
     subject = "Pagamento Confirmado! Você é PRO 🚀"
     html = f"""
     <h1>Pagamento Confirmado!</h1>
-    <p>Obrigado por assinar o TopAções Premium.</p>
+    <p>Obrigado por assinar o NorteAcoes Premium.</p>
     <p>Detalhes da transação:</p>
     <ul>
         <li><strong>Valor:</strong> {formatted_amount}</li>

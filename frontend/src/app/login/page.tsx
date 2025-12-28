@@ -166,7 +166,7 @@ export default function LoginPage() {
                             />
                         </div>
                         <div>
-                            <h1 className="login-logo-title">TopAções</h1>
+                            <h1 className="login-logo-title">NorteAcoes</h1>
                             <p className="login-logo-subtitle">Dashboard Fundamentalista</p>
                         </div>
                     </motion.div>

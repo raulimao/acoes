@@ -63,7 +63,7 @@ class ProfessionalReport(FPDF):
         
         self.set_text_color(255, 255, 255)
         self.set_font('Arial', 'B', 20)
-        self.cell(0, 5, 'TOP ACOES', 0, 1, 'L')
+        self.cell(0, 5, 'NORTE ACOES', 0, 1, 'L')
         
         self.set_font('Arial', '', 10)
         self.cell(0, 5, 'Relatorio Semanal de Mercado', 0, 1, 'L')

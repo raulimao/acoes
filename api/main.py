@@ -56,7 +56,7 @@ security = HTTPBearer(auto_error=False)
 initialize_database()
 
 app = FastAPI(
-    title="TopAções API",
+    title="NorteAcoes API",
     description="API para análise fundamentalista de ações da B3",
     version="2.0.0"
 )

@@ -3,17 +3,17 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "TopAções | Dashboard Fundamentalista",
+  title: "NorteAcoes | Dashboard Fundamentalista",
   description: "Análise fundamentalista de ações da B3 com inteligência artificial para encontrar as melhores oportunidades.",
   metadataBase: new URL('https://acoes.vercel.app'),
   openGraph: {
-    title: "TopAções | Inteligência Artificial na Bolsa",
+    title: "NorteAcoes | Inteligência Artificial na Bolsa",
     description: "Descubra as ações mais baratas e rentáveis da B3 com nossos rankings exclusivos.",
     images: [{
       url: '/og-image.png', // Needs to be added to public folder later
       width: 1200,
       height: 630,
-      alt: 'TopAções Dashboard'
+      alt: 'NorteAcoes Dashboard'
     }],
     locale: 'pt_BR',
     type: 'website',

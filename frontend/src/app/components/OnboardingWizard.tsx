@@ -159,7 +159,7 @@ export default function OnboardingWizard({ onComplete }: OnboardingWizardProps) 
                             }}>
                                 <span style={{ fontSize: '3rem' }}>👋</span>
                                 <h2 style={{ color: 'white', margin: '0.5rem 0 0', fontSize: '1.5rem', fontWeight: 700 }}>
-                                    Bem-vindo ao TopAções!
+                                    Bem-vindo ao NorteAcoes!
                                 </h2>
                                 <p style={{ color: 'rgba(255,255,255,0.8)', margin: '0.5rem 0 0' }}>
                                     Responda 3 perguntas rápidas para personalizar suas recomendações

@@ -28,7 +28,7 @@ def create_checkout_session(user_id: str, email: str, base_url: str):
                     'price_data': {
                         'currency': 'brl',
                         'product_data': {
-                            'name': 'TopAções Premium',
+                            'name': 'NorteAcoes Premium',
                             'description': 'Acesso ilimitado a todos os recursos e relatórios',
                         },
                         'unit_amount': 2990, # R$ 29,90

@@ -275,7 +275,7 @@ export default function PricingPage() {
 
                 {/* Footer Brand */}
                 <div className="pb-12 pt-12 text-center opacity-30">
-                    <p className="text-sm tracking-[0.2em] uppercase font-bold text-gray-500">TopAções App © 2025</p>
+                    <p className="text-sm tracking-[0.2em] uppercase font-bold text-gray-500">NorteAcoes App © 2025</p>
                 </div>
 
             </div>

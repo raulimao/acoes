@@ -26,7 +26,7 @@ export default function AIChat() {
     const [messages, setMessages] = useState<Message[]>([
         {
             role: 'assistant',
-            content: '👋 Olá! Sou o Analista IA do TopAções.\n\nPosso ajudar você com:\n• Análise de ações específicas\n• Comparar ativos\n• Explicar estratégias (Graham, Greenblatt, Bazin)\n• Buscar por critérios (P/L, DY, ROE)\n• Ver evolução histórica\n\nO que você gostaria de saber?',
+            content: '👋 Olá! Sou o Analista IA do NorteAcoes.\n\nPosso ajudar você com:\n• Análise de ações específicas\n• Comparar ativos\n• Explicar estratégias (Graham, Greenblatt, Bazin)\n• Buscar por critérios (P/L, DY, ROE)\n• Ver evolução histórica\n\nO que você gostaria de saber?',
             timestamp: new Date()
         }
     ]);
@@ -188,7 +188,7 @@ export default function AIChat() {
                                 </div>
                                 <div>
                                     <h3 style={{ fontWeight: 600, fontSize: '0.95rem', color: 'white' }}>
-                                        TopAções AI
+                                        NorteAcoes AI
                                     </h3>
                                     <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
                                         Powered by Groq

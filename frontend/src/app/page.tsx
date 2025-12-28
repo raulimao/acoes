@@ -252,7 +252,7 @@ export default function Dashboard() {
                   <Sparkles style={{ width: '1.5rem', height: '1.5rem', color: 'white' }} />
                 </div>
                 <div className="dashboard-logo-text">
-                  <h1 className="gradient-text">TopAções</h1>
+                  <h1 className="gradient-text">NorteAcoes</h1>
                   <p>Análise Fundamentalista</p>
                 </div>
               </motion.div>
