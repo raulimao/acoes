@@ -68,14 +68,22 @@ def limpar_valores(df: pd.DataFrame, skip_cols: list = None) -> pd.DataFrame:
             continue
             
         if df[col].dtype == object:
+            # Convert to string and strip whitespace
+            df[col] = df[col].astype(str).str.strip()
+            
+            # Replace standalone "-" (meaning null/no value) with empty string
+            # BUT preserve negative numbers like "-15.3"
+            df[col] = df[col].apply(lambda x: "" if x == "-" else x)
+            
+            # Replace Brazilian number format (1.234,56 -> 1234.56)
             df[col] = (
-                df[col].astype(str)
-                    .str.strip()
-                    .str.replace(".", "", regex=False)
-                    .str.replace(",", ".", regex=False)
-                    .str.replace("%", "", regex=False)
-                    .str.replace("-", "", regex=False)
+                df[col]
+                    .str.replace(".", "", regex=False)  # Remove thousand separator
+                    .str.replace(",", ".", regex=False)  # Decimal comma to point
+                    .str.replace("%", "", regex=False)   # Remove percent sign
             )
+            
+            # Convert to numeric (preserves negative signs)
             df[col] = pd.to_numeric(df[col], errors="coerce")
     
     return df
