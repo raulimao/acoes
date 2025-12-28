@@ -1,5 +1,0 @@
-ATIVOS SEM SETOR DEFINIDO (12)
-==================================================
-
-[!] Ausentes na tabela de setores (12):
-ADMF3, ARND3, AXIA3, AXIA6, EMBJ3, FICT3, FIGE3, IFCM3, MBRF3, MERC3, SOND3, WDCN3

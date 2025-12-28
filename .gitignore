@@ -47,3 +47,15 @@ htmlcov/
 # Temporary files
 *.tmp
 *.bak
+
+# Maintenance Scripts
+check_*.py
+debug_*.py
+migrate_*.py
+fix_*.py
+find_*.py
+import_*.py
+update_*.py
+verify_*.py
+missing_sectors.txt
+services/report_service_OLD.py
