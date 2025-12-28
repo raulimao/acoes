@@ -490,7 +490,7 @@ export default function Dashboard() {
                               {totalStocksCount - displayedStocks.length}+ ações ocultas
                             </p>
                             <p className="text-sm text-white/60">
-                              Você está vendo 3 ações aleatórias do ranking. Desbloqueie o Top 15!
+                              Você está vendo 3 ações aleatórias do ranking. Desbloqueie o Ranking Geral semanal!
                             </p>
                           </div>
                         </div>

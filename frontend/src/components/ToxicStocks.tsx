@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     Skull,
@@ -11,7 +12,8 @@ import {
     Flame,
     AlertOctagon,
     Activity,
-    RefreshCw
+    RefreshCw,
+    Check
 } from 'lucide-react';
 
 interface Stock {
@@ -35,15 +37,60 @@ interface ToxicStocksProps {
 }
 
 type RiskLevel = 'critical' | 'high' | 'medium';
+type FilterType = 'all' | 'avoid' | 'short' | 'turnaround';
 
 interface ToxicAnalysis {
     riskLevel: RiskLevel;
     reasons: string[];
     turnaroundPotential: boolean;
+    shortCandidate: boolean;
 }
 
+const FILTER_CONFIG = {
+    all: {
+        label: 'Todas',
+        icon: Skull,
+        color: 'text-white',
+        bgActive: 'bg-gradient-to-r from-slate-700 to-slate-600',
+        bgInactive: 'bg-slate-800/50',
+        borderActive: 'border-white/30',
+        borderInactive: 'border-white/10',
+        description: 'Todas as ações tóxicas'
+    },
+    avoid: {
+        label: 'Evitar',
+        icon: Shield,
+        color: 'text-red-400',
+        bgActive: 'bg-gradient-to-r from-red-900/60 to-red-800/60',
+        bgInactive: 'bg-red-900/20',
+        borderActive: 'border-red-500/50',
+        borderInactive: 'border-red-500/20',
+        description: 'Risco crítico - evitar compra'
+    },
+    short: {
+        label: 'Short',
+        icon: TrendingDown,
+        color: 'text-purple-400',
+        bgActive: 'bg-gradient-to-r from-purple-900/60 to-purple-800/60',
+        bgInactive: 'bg-purple-900/20',
+        borderActive: 'border-purple-500/50',
+        borderInactive: 'border-purple-500/20',
+        description: 'Candidatas para venda'
+    },
+    turnaround: {
+        label: 'Turnaround',
+        icon: RefreshCw,
+        color: 'text-cyan-400',
+        bgActive: 'bg-gradient-to-r from-cyan-900/60 to-cyan-800/60',
+        bgInactive: 'bg-cyan-900/20',
+        borderActive: 'border-cyan-500/50',
+        borderInactive: 'border-cyan-500/20',
+        description: 'Potencial de recuperação'
+    }
+};
+
 export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicStocksProps) {
-    const toxicStocks = stocks.slice(0, isPremium ? 10 : 5);
+    const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
     const analyzeToxicity = (stock: Stock): ToxicAnalysis => {
         const reasons: string[] = [];
@@ -107,12 +154,36 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
             riskLevel = 'high';
         }
 
+        // Short candidate: critical risk + high P/L or negative ROE
+        const shortCandidate = riskLevel === 'critical' || (stock.p_l && stock.p_l > 50) || (stock.roe && stock.roe < -10);
+
         return {
             riskLevel,
-            reasons: reasons.slice(0, 3), // Max 3 reasons
-            turnaroundPotential: positiveSignals >= 2
+            reasons: reasons.slice(0, 3),
+            turnaroundPotential: positiveSignals >= 1,
+            shortCandidate: !!shortCandidate
         };
     };
+
+    // Pre-analyze all stocks
+    const analyzedStocks = stocks.map(stock => ({
+        stock,
+        analysis: analyzeToxicity(stock)
+    }));
+
+    // Apply filter
+    const filteredStocks = analyzedStocks.filter(({ analysis }) => {
+        switch (activeFilter) {
+            case 'avoid':
+                return analysis.riskLevel === 'critical';
+            case 'short':
+                return analysis.shortCandidate;
+            case 'turnaround':
+                return analysis.turnaroundPotential;
+            default:
+                return true;
+        }
+    }).slice(0, isPremium ? 15 : 5);
 
     const getRiskConfig = (level: RiskLevel) => {
         switch (level) {
@@ -160,38 +231,61 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                     </div>
                 </div>
 
-                {/* Strategy Explanation */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-red-900/40 to-red-950/40 border border-red-500/20">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Shield className="w-5 h-5 text-red-400" />
-                            <h3 className="font-bold text-white">Evitar Armadilhas</h3>
-                        </div>
-                        <p className="text-sm text-white/60">Identifique ações com problemas fundamentais antes de investir.</p>
-                    </div>
+                {/* Filter Buttons */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(Object.keys(FILTER_CONFIG) as FilterType[]).map((filterKey) => {
+                        const config = FILTER_CONFIG[filterKey];
+                        const Icon = config.icon;
+                        const isActive = activeFilter === filterKey;
+                        const count = filterKey === 'all'
+                            ? analyzedStocks.length
+                            : analyzedStocks.filter(({ analysis }) => {
+                                if (filterKey === 'avoid') return analysis.riskLevel === 'critical';
+                                if (filterKey === 'short') return analysis.shortCandidate;
+                                if (filterKey === 'turnaround') return analysis.turnaroundPotential;
+                                return false;
+                            }).length;
 
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-purple-900/40 to-purple-950/40 border border-purple-500/20">
-                        <div className="flex items-center gap-2 mb-2">
-                            <TrendingDown className="w-5 h-5 text-purple-400" />
-                            <h3 className="font-bold text-white">Short Selling</h3>
-                        </div>
-                        <p className="text-sm text-white/60">Oportunidades para traders experientes em operações vendidas.</p>
-                    </div>
-
-                    <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-900/40 to-cyan-950/40 border border-cyan-500/20">
-                        <div className="flex items-center gap-2 mb-2">
-                            <RefreshCw className="w-5 h-5 text-cyan-400" />
-                            <h3 className="font-bold text-white">Turnaround Watch</h3>
-                        </div>
-                        <p className="text-sm text-white/60">Empresas em recuperação podem ser oportunidades de ouro.</p>
-                    </div>
+                        return (
+                            <motion.button
+                                key={filterKey}
+                                onClick={() => setActiveFilter(filterKey)}
+                                className={`p-4 rounded-xl border transition-all ${isActive
+                                        ? `${config.bgActive} ${config.borderActive}`
+                                        : `${config.bgInactive} ${config.borderInactive} hover:border-white/20`
+                                    }`}
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                            >
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Icon className={`w-5 h-5 ${config.color}`} />
+                                    <span className={`font-bold ${isActive ? 'text-white' : 'text-white/70'}`}>
+                                        {config.label}
+                                    </span>
+                                    {isActive && (
+                                        <Check className="w-4 h-4 text-green-400 ml-auto" />
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs text-white/50">{config.description}</p>
+                                    <span className={`text-sm font-bold ${config.color}`}>
+                                        {count}
+                                    </span>
+                                </div>
+                            </motion.button>
+                        );
+                    })}
                 </div>
+            </div>
+
+            {/* Results count */}
+            <div className="mb-4 text-sm text-white/50">
+                Mostrando {filteredStocks.length} {activeFilter !== 'all' && `de ${analyzedStocks.length}`} ações
             </div>
 
             {/* Toxic Stocks Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {toxicStocks.map((stock, index) => {
-                    const analysis = analyzeToxicity(stock);
+                {filteredStocks.map(({ stock, analysis }, index) => {
                     const riskConfig = getRiskConfig(analysis.riskLevel);
                     const RiskIcon = riskConfig.icon;
 
@@ -200,7 +294,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                             key={stock.papel}
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.1 }}
+                            transition={{ delay: index * 0.05 }}
                             className={`relative rounded-xl border ${riskConfig.borderColor} bg-gradient-to-br from-slate-800/80 to-slate-900/90 overflow-hidden cursor-pointer group hover:scale-[1.01] transition-transform`}
                             onClick={() => onSelectStock(stock)}
                         >
@@ -220,10 +314,12 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                                         </div>
                                     </div>
 
-                                    {/* Risk Badge */}
-                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${riskConfig.bgColor}`}>
-                                        <RiskIcon className={`w-4 h-4 ${riskConfig.color}`} />
-                                        <span className={`text-xs font-bold ${riskConfig.color}`}>{riskConfig.label}</span>
+                                    {/* Badges */}
+                                    <div className="flex gap-1">
+                                        <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${riskConfig.bgColor}`}>
+                                            <RiskIcon className={`w-4 h-4 ${riskConfig.color}`} />
+                                            <span className={`text-xs font-bold ${riskConfig.color}`}>{riskConfig.label}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -261,14 +357,21 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                                     ))}
                                 </div>
 
-                                {/* Turnaround Badge */}
-                                {analysis.turnaroundPotential && (
-                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                                        <RefreshCw className="w-4 h-4 text-cyan-400" />
-                                        <span className="text-sm text-cyan-400 font-medium">Potencial Turnaround</span>
-                                        <span className="text-xs text-white/40 ml-auto">P/VP baixo ou DY alto</span>
-                                    </div>
-                                )}
+                                {/* Tags */}
+                                <div className="flex flex-wrap gap-2">
+                                    {analysis.turnaroundPotential && (
+                                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-cyan-500/20 border border-cyan-500/30">
+                                            <RefreshCw className="w-3 h-3 text-cyan-400" />
+                                            <span className="text-xs text-cyan-400 font-medium">Turnaround</span>
+                                        </div>
+                                    )}
+                                    {analysis.shortCandidate && (
+                                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 border border-purple-500/30">
+                                            <TrendingDown className="w-3 h-3 text-purple-400" />
+                                            <span className="text-xs text-purple-400 font-medium">Short</span>
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* View Details CTA */}
                                 <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
@@ -280,6 +383,12 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                     );
                 })}
             </div>
+
+            {filteredStocks.length === 0 && (
+                <div className="text-center py-12 text-white/40">
+                    Nenhuma ação encontrada com este filtro.
+                </div>
+            )}
 
             {/* Disclaimer */}
             <motion.div
