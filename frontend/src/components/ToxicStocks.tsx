@@ -183,7 +183,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
             default:
                 return true;
         }
-    }).slice(0, isPremium ? 15 : 5);
+    }).slice(0, isPremium ? 15 : 3); // Free users see only 3
 
     const getRiskConfig = (level: RiskLevel) => {
         switch (level) {
@@ -251,8 +251,8 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                                 key={filterKey}
                                 onClick={() => setActiveFilter(filterKey)}
                                 className={`p-4 rounded-xl border transition-all ${isActive
-                                        ? `${config.bgActive} ${config.borderActive}`
-                                        : `${config.bgInactive} ${config.borderInactive} hover:border-white/20`
+                                    ? `${config.bgActive} ${config.borderActive}`
+                                    : `${config.bgInactive} ${config.borderInactive} hover:border-white/20`
                                     }`}
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}

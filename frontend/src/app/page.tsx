@@ -32,6 +32,7 @@ import StockCard from '../components/StockCard';
 import PremiumFilters, { FilterValues } from '../components/PremiumFilters';
 import Top3Podium from '../components/Top3Podium';
 import ToxicStocks from '../components/ToxicStocks';
+import FOMOWidget from '../components/FOMOWidget';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -445,12 +446,82 @@ export default function Dashboard() {
                 {/* Engagement Widgets (Alerts & Reports) */}
                 <EngagementWidgets />
 
-                {/* Top 3 Podium - Only for Premium Users */}
-                {user?.is_premium && (
+                {/* FOMO Widget - Only for Free Users */}
+                <FOMOWidget isPremium={user?.is_premium || false} topStocks={stocks.slice(0, 5)} />
+
+                {/* Top 3 Podium - Premium gets full view, Free gets teaser */}
+                {user?.is_premium ? (
                   <Top3Podium
                     stocks={stocks}
                     onSelectStock={setSelectedStock}
                   />
+                ) : (
+                  // Free User Top 3 Preview
+                  <div className="mb-8 relative">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
+                          <Trophy className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-white">Top 3 da Semana</h2>
+                          <p className="text-white/50 text-sm">Veja uma prévia das melhores ações</p>
+                        </div>
+                      </div>
+                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full flex items-center gap-1">
+                        <Lock className="w-3 h-3" /> Premium
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {stocks.slice(0, 3).map((stock, index) => (
+                        <div
+                          key={stock.papel}
+                          className="relative rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-yellow-500/20 p-4 cursor-pointer hover:border-yellow-500/40 transition-colors"
+                          onClick={() => router.push('/pricing')}
+                        >
+                          {/* Position Badge */}
+                          <div className={`absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
+                              'bg-gradient-to-br from-orange-400 to-orange-600'
+                            }`}>
+                            {index + 1}°
+                          </div>
+
+                          {/* Stock Name - Visible */}
+                          <h3 className="text-lg font-bold text-white mb-2 mt-2">{stock.papel}</h3>
+                          <p className="text-sm text-white/50 mb-3">{stock.setor || 'Diversos'}</p>
+
+                          {/* Score - Blurred */}
+                          <div className="relative">
+                            <div className="blur-sm select-none">
+                              <div className="text-2xl font-bold text-cyan-400">??.??</div>
+                              <p className="text-xs text-white/40">Super Score</p>
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Lock className="w-5 h-5 text-yellow-400" />
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CTA */}
+                    <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20">
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div>
+                          <p className="font-bold text-white">Veja os scores completos do Top 3</p>
+                          <p className="text-sm text-white/60">Descubra por que essas ações são as melhores</p>
+                        </div>
+                        <button
+                          onClick={() => router.push('/pricing')}
+                          className="px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform"
+                        >
+                          Desbloquear Top 3
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Premium Filters Component */}
@@ -563,8 +634,9 @@ export default function Dashboard() {
         </div>
       </div>
 
+
       {selectedStock && typeof document !== 'undefined' && createPortal(
-        <StockModal stock={selectedStock} onClose={() => setSelectedStock(null)} />,
+        <StockModal stock={selectedStock} onClose={() => setSelectedStock(null)} isPremium={user?.is_premium || false} />,
         document.body
       )
       }
@@ -774,7 +846,7 @@ function StockTable({ stocks, onSelect, showRank = false }: { stocks: Stock[], o
   );
 }
 
-function StockModal({ stock, onClose }: { stock: Stock, onClose: () => void }) {
+function StockModal({ stock, onClose, isPremium }: { stock: Stock, onClose: () => void, isPremium: boolean }) {
   const getScoreColor = (score: number) => {
     if (score >= 12) return 'text-green-400';
     if (score >= 8) return 'text-yellow-400';
@@ -793,7 +865,7 @@ function StockModal({ stock, onClose }: { stock: Stock, onClose: () => void }) {
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.9, y: 20 }}
-        className="card max-w-lg w-full"
+        className="card max-w-lg w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-6">
@@ -809,6 +881,7 @@ function StockModal({ stock, onClose }: { stock: Stock, onClose: () => void }) {
           </button>
         </div>
 
+        {/* Basic Metrics - Always Visible */}
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-white/5 rounded-xl p-4">
             <p className="text-white/40 text-sm mb-1">Cotação</p>
@@ -822,8 +895,9 @@ function StockModal({ stock, onClose }: { stock: Stock, onClose: () => void }) {
           </div>
         </div>
 
+        {/* Basic Indicators - Visible */}
         <div className="space-y-3">
-          <h3 className="font-semibold mb-2">Indicadores</h3>
+          <h3 className="font-semibold mb-2">Indicadores Básicos</h3>
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-white/5 rounded-lg p-3 text-center">
               <p className="text-white/40 text-xs">P/L</p>
@@ -837,50 +911,132 @@ function StockModal({ stock, onClose }: { stock: Stock, onClose: () => void }) {
               <p className="text-white/40 text-xs">DY</p>
               <p className="font-bold">{stock.dividend_yield?.toFixed(2)}%</p>
             </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-white/40 text-xs">ROE</p>
-              <p className="font-bold">{stock.roe?.toFixed(2)}%</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-white/40 text-xs">ROIC</p>
-              <p className="font-bold">{stock.roic?.toFixed(2)}%</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-white/40 text-xs">Liq. Corr.</p>
-              <p className="font-bold">{stock.liquidez_corrente?.toFixed(2)}</p>
-            </div>
           </div>
         </div>
 
+        {/* Advanced Metrics - Premium Only */}
+        <div className="mt-6 pt-6 border-t border-white/10 relative">
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            Indicadores Avançados
+            {!isPremium && (
+              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Premium
+              </span>
+            )}
+          </h3>
+
+          {isPremium ? (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/5 rounded-lg p-3 text-center">
+                <p className="text-white/40 text-xs">ROE</p>
+                <p className="font-bold">{stock.roe?.toFixed(2)}%</p>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3 text-center">
+                <p className="text-white/40 text-xs">ROIC</p>
+                <p className="font-bold">{stock.roic?.toFixed(2)}%</p>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3 text-center">
+                <p className="text-white/40 text-xs">Liq. Corr.</p>
+                <p className="font-bold">{stock.liquidez_corrente?.toFixed(2)}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="grid grid-cols-3 gap-3 blur-sm pointer-events-none">
+                <div className="bg-white/5 rounded-lg p-3 text-center">
+                  <p className="text-white/40 text-xs">ROE</p>
+                  <p className="font-bold">??%</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 text-center">
+                  <p className="text-white/40 text-xs">ROIC</p>
+                  <p className="font-bold">??%</p>
+                </div>
+                <div className="bg-white/5 rounded-lg p-3 text-center">
+                  <p className="text-white/40 text-xs">Liq. Corr.</p>
+                  <p className="font-bold">??</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Strategy Scores - Premium Only */}
         <div className="mt-6 pt-6 border-t border-white/10">
-          <h3 className="font-semibold mb-3">Scores por Estratégia</h3>
-          <div className="grid grid-cols-4 gap-2">
-            <div className="text-center">
-              <p className="text-xs text-white/40">Graham</p>
-              <p className={`font-bold ${getScoreColor(stock.score_graham || 0)}`}>
-                {stock.score_graham?.toFixed(1)}
-              </p>
+          <h3 className="font-semibold mb-3 flex items-center gap-2">
+            Scores por Estratégia
+            {!isPremium && (
+              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Premium
+              </span>
+            )}
+          </h3>
+
+          {isPremium ? (
+            <div className="grid grid-cols-4 gap-2">
+              <div className="text-center">
+                <p className="text-xs text-white/40">Graham</p>
+                <p className={`font-bold ${getScoreColor(stock.score_graham || 0)}`}>
+                  {stock.score_graham?.toFixed(1)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-white/40">Greenblatt</p>
+                <p className={`font-bold ${getScoreColor(stock.score_greenblatt || 0)}`}>
+                  {stock.score_greenblatt?.toFixed(1)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-white/40">Bazin</p>
+                <p className={`font-bold ${getScoreColor(stock.score_bazin || 0)}`}>
+                  {stock.score_bazin?.toFixed(1)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-white/40">Qualidade</p>
+                <p className={`font-bold ${getScoreColor(stock.score_qualidade || 0)}`}>
+                  {stock.score_qualidade?.toFixed(1)}
+                </p>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-white/40">Greenblatt</p>
-              <p className={`font-bold ${getScoreColor(stock.score_greenblatt || 0)}`}>
-                {stock.score_greenblatt?.toFixed(1)}
-              </p>
+          ) : (
+            <div className="relative">
+              <div className="grid grid-cols-4 gap-2 blur-sm pointer-events-none">
+                <div className="text-center">
+                  <p className="text-xs text-white/40">Graham</p>
+                  <p className="font-bold text-white/50">?</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-white/40">Greenblatt</p>
+                  <p className="font-bold text-white/50">?</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-white/40">Bazin</p>
+                  <p className="font-bold text-white/50">?</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-xs text-white/40">Qualidade</p>
+                  <p className="font-bold text-white/50">?</p>
+                </div>
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-xs text-white/40">Bazin</p>
-              <p className={`font-bold ${getScoreColor(stock.score_bazin || 0)}`}>
-                {stock.score_bazin?.toFixed(1)}
-              </p>
-            </div>
-            <div className="text-center">
-              <p className="text-xs text-white/40">Qualidade</p>
-              <p className={`font-bold ${getScoreColor(stock.score_qualidade || 0)}`}>
-                {stock.score_qualidade?.toFixed(1)}
-              </p>
+          )}
+        </div>
+
+        {/* Upgrade CTA for Free Users */}
+        {!isPremium && (
+          <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-6 h-6 text-yellow-400" />
+              <div className="flex-1">
+                <p className="font-bold text-white">Desbloquear Análise Completa</p>
+                <p className="text-sm text-white/60">ROE, ROIC, Scores por Estratégia e mais</p>
+              </div>
+              <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform">
+                Assinar
+              </button>
             </div>
           </div>
-        </div>
+        )}
       </motion.div>
     </motion.div>
   );
