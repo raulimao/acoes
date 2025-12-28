@@ -132,7 +132,9 @@ def corrigir_cotacoes(df: pd.DataFrame) -> pd.DataFrame:
 
 def filtrar_liquidez(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Filter out stocks with zero liquidity or patrimony.
+    Filter out stocks with zero liquidity.
+    Note: We do NOT filter patrimonio_liquido anymore to capture 
+    companies with negative equity for complete analysis.
     
     Args:
         df: DataFrame with stock data
@@ -143,8 +145,8 @@ def filtrar_liquidez(df: pd.DataFrame) -> pd.DataFrame:
     if 'liquidez_2meses' in df.columns:
         df = df[df['liquidez_2meses'] > 0]
     
-    if 'patrimonio_liquido' in df.columns:
-        df = df[df['patrimonio_liquido'] > 0]
+    # NOTE: Removed patrimonio_liquido > 0 filter to capture all data
+    # including companies with negative equity (P/VP, Div/Pat etc will be negative)
     
     return df
 
