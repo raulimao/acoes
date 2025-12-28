@@ -1662,12 +1662,17 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
         buffer = io.BytesIO(pdf_bytes)
         buffer.seek(0)
         
-        filename = f"norteacoes_report_{datetime.now().strftime('%Y%m%d')}.pdf"
+        filename = f"norteacoes_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         
         return StreamingResponse(
             buffer, 
             media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
         )
         
     except Exception as e:

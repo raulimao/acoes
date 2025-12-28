@@ -254,7 +254,10 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
                  color=COLORS['primary'], ha='center')
         fig.text(0.5, 0.10, 'Tecnologia em Análise de Investimentos', fontsize=14, 
                  color=COLORS['text_muted'], ha='center')
-        fig.text(0.9, 0.05, f"Pág. 4/4 - {datetime.now().strftime('%d/%m/%Y')}", 
+        
+        # Version marker for debug
+        timestamp = datetime.now().strftime('%d/%m/%Y %H:%M')
+        fig.text(0.9, 0.05, f"Pág. 4/4 - {timestamp} (v2.1)", 
                  fontsize=10, color=COLORS['text_muted'], ha='right')
         
         pdf.savefig(fig, facecolor=COLORS['bg'])
