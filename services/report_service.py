@@ -269,12 +269,13 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
 
     # 4. CONCLUSION
     pdf.ln(15)
+    pdf.set_x(10) # Reset X to margin to ensure full width available
     pdf.set_draw_color(200, 200, 200)
     pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     pdf.set_font('Arial', 'B', 10)
-    pdf.multi_cell(0, 5, safe_str("Nota do Analista IA:"))
+    pdf.cell(0, 6, safe_str("Nota do Analista IA:"), 0, 1) # Changed to cell for title
     pdf.set_font('Arial', '', 9)
     pdf.multi_cell(0, 5, safe_str("O mercado apresenta oportunidades em setores descontados. O Super Score continua priorizando empresas com balanco solido e lucratividade crescente. Mantenha diversificacao e foco no longo prazo."))
 
-    return pdf.output().encode('latin-1')  # FPDF1/2 compat output
+    return bytes(pdf.output())  # Ensure bytes return for FPDF2
