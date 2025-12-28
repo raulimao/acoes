@@ -80,7 +80,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setError('Conta criada! Verifique seu email para confirmar.');
             return true;
         } catch (err: any) {
-            const message = err.response?.data?.detail || 'Erro ao criar conta';
+            // Handle 202 (Accepted) - email confirmation required
+            if (err.response?.status === 202) {
+                setError(err.response?.data?.detail || 'Conta criada! Verifique seu email para confirmar.');
+                return true;
+            }
+            
+            // Handle Pydantic validation errors (422 - array of error objects)
+            const detail = err.response?.data?.detail;
+            let message = 'Erro ao criar conta';
+            
+            if (Array.isArray(detail)) {
+                // Pydantic returns [{type, loc, msg, input, ctx}, ...]
+                const firstError = detail[0];
+                if (firstError?.msg) {
+                    // Map common Pydantic messages to Portuguese
+                    const msgLower = firstError.msg.toLowerCase();
+                    if (msgLower.includes('at least') || msgLower.includes('min_length')) {
+                        const field = firstError.loc?.[1] || 'campo';
+                        if (field === 'name') message = 'Nome deve ter pelo menos 2 caracteres';
+                        else if (field === 'password') message = 'Senha deve ter pelo menos 6 caracteres';
+                        else if (field === 'email') message = 'Email inválido';
+                        else message = `${field}: ${firstError.msg}`;
+                    } else {
+                        message = firstError.msg;
+                    }
+                }
+            } else if (typeof detail === 'string') {
+                message = detail;
+            }
+            
             setError(message);
             return false;
         }
