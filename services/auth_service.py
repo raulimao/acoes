@@ -138,6 +138,50 @@ def add_user(username: str, name: str, email: str, password: str = None, is_prem
 
 
 
+
+def register_supabase_user(username: str, name: str, email: str, password: str) -> bool:
+    """
+    Register a new user via Supabase Auth (Sign Up).
+    This ensures the user exists in auth.users before creating the profile.
+    """
+    try:
+        client = get_supabase_client()
+        
+        # 1. Sign Up in Supabase Auth
+        res = client.auth.sign_up({
+            "email": email,
+            "password": password,
+            "options": {
+                "data": { "name": name, "username": username }
+            }
+        })
+        
+        if not res.user or not res.user.id:
+            print("Error: Sign up failed, no user returned")
+            return False
+            
+        user_id = res.user.id
+        
+        # 2. Create Profile
+        # Note: If you have a Trigger in Supabase that auto-creates profiles,
+        # this might cause a duplicate key error. But based on the user's error,
+        # it seems they don't (or they wouldn't have FK issues with missing users).
+        
+        client.table("profiles").upsert({
+            "id": user_id,
+            "username": username,
+            "name": name,
+            "email": email,
+            "is_premium": False
+        }).execute()
+        
+        return True
+    
+    except Exception as e:
+        print(f"Error registering supabase user: {e}")
+        return False
+
+
 def upsert_oauth_user(email: str, name: str):
     """Ensure OAuth user exists in profiles table."""
     username = email.split("@")[0]
