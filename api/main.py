@@ -30,7 +30,7 @@ from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
 
 
-from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user, register_supabase_user
+from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
 from fastapi import FastAPI, HTTPException, Query, Depends, Request
@@ -43,38 +43,7 @@ import io
 
 # ...
 
-@app.post("/api/auth/register", response_model=TokenResponse)
-async def register(request: RegisterRequest):
-    """Register new user and return JWT token."""
-    # Check if user already exists
-    existing = get_user_by_email(request.email)
-    if existing:
-        raise HTTPException(status_code=400, detail="Email já cadastrado")
-    
-    # Create username from email
-    username = request.email.split("@")[0]
-    
-    # Register in Supabase Auth + Profile
-    success = register_supabase_user(username, request.name, request.email, request.password)
-    if not success:
-        # Check if it failed because email exists in Auth but not Profile (edge case)
-        raise HTTPException(status_code=400, detail="Erro ao criar conta. Email inválido ou já em uso.")
-    
-    # Create token
-    access_token = create_access_token(
-        data={"sub": request.email, "name": request.name}
-    )
-    
-    # Convert to background task in production
-    try:
-        send_welcome_email(request.name, request.email)
-    except Exception as e:
-        logger.error("welcome_email_failed", error=str(e))
-    
-    return TokenResponse(
-        access_token=access_token,
-        user={"username": username, "name": request.name, "email": request.email, "is_premium": False}
-    )
+
 
 # JWT Configuration
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "topacoes-secret-key-change-in-production")
