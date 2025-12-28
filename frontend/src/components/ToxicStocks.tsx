@@ -1,0 +1,304 @@
+'use client';
+
+import { motion } from 'framer-motion';
+import {
+    Skull,
+    AlertTriangle,
+    TrendingDown,
+    Shield,
+    Eye,
+    ChevronRight,
+    Flame,
+    AlertOctagon,
+    Activity,
+    RefreshCw
+} from 'lucide-react';
+
+interface Stock {
+    papel: string;
+    setor?: string;
+    cotacao?: number;
+    p_l?: number;
+    p_vp?: number;
+    dividend_yield?: number;
+    roe?: number;
+    roic?: number;
+    margem_liquida?: number;
+    div_bruta_patrimonio?: number;
+    super_score?: number;
+}
+
+interface ToxicStocksProps {
+    stocks: Stock[];
+    isPremium: boolean;
+    onSelectStock: (stock: Stock) => void;
+}
+
+type RiskLevel = 'critical' | 'high' | 'medium';
+
+interface ToxicAnalysis {
+    riskLevel: RiskLevel;
+    reasons: string[];
+    turnaroundPotential: boolean;
+}
+
+export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicStocksProps) {
+    const toxicStocks = stocks.slice(0, isPremium ? 10 : 5);
+
+    const analyzeToxicity = (stock: Stock): ToxicAnalysis => {
+        const reasons: string[] = [];
+        let riskScore = 0;
+        let positiveSignals = 0;
+
+        // P/L Analysis
+        if (stock.p_l && stock.p_l < 0) {
+            reasons.push('P/L negativo (prejuízo)');
+            riskScore += 3;
+        } else if (stock.p_l && stock.p_l > 100) {
+            reasons.push(`P/L muito alto (${stock.p_l.toFixed(0)}x)`);
+            riskScore += 2;
+        }
+
+        // ROE Analysis
+        if (stock.roe && stock.roe < 0) {
+            reasons.push(`ROE negativo (${stock.roe.toFixed(1)}%)`);
+            riskScore += 3;
+        } else if (stock.roe && stock.roe < 5) {
+            reasons.push(`ROE baixo (${stock.roe.toFixed(1)}%)`);
+            riskScore += 1;
+        }
+
+        // ROIC Analysis
+        if (stock.roic && stock.roic < 0) {
+            reasons.push(`ROIC negativo (${stock.roic.toFixed(1)}%)`);
+            riskScore += 2;
+        }
+
+        // Margin Analysis
+        if (stock.margem_liquida && stock.margem_liquida < 0) {
+            reasons.push('Margem líquida negativa');
+            riskScore += 2;
+        }
+
+        // Debt Analysis
+        if (stock.div_bruta_patrimonio && stock.div_bruta_patrimonio > 2) {
+            reasons.push(`Dívida alta (${stock.div_bruta_patrimonio.toFixed(1)}x patrimônio)`);
+            riskScore += 2;
+        }
+
+        // Super Score
+        if (stock.super_score && stock.super_score < 10) {
+            riskScore += 1;
+        }
+
+        // Check for turnaround potential (some positive signals)
+        if (stock.dividend_yield && stock.dividend_yield > 5) {
+            positiveSignals++;
+        }
+        if (stock.p_vp && stock.p_vp < 1) {
+            positiveSignals++;
+        }
+
+        // Determine risk level
+        let riskLevel: RiskLevel = 'medium';
+        if (riskScore >= 6) {
+            riskLevel = 'critical';
+        } else if (riskScore >= 4) {
+            riskLevel = 'high';
+        }
+
+        return {
+            riskLevel,
+            reasons: reasons.slice(0, 3), // Max 3 reasons
+            turnaroundPotential: positiveSignals >= 2
+        };
+    };
+
+    const getRiskConfig = (level: RiskLevel) => {
+        switch (level) {
+            case 'critical':
+                return {
+                    icon: AlertOctagon,
+                    label: 'Crítico',
+                    color: 'text-red-500',
+                    bgColor: 'bg-red-500/20',
+                    borderColor: 'border-red-500/30',
+                    gradient: 'from-red-600 to-red-800'
+                };
+            case 'high':
+                return {
+                    icon: AlertTriangle,
+                    label: 'Alto',
+                    color: 'text-orange-500',
+                    bgColor: 'bg-orange-500/20',
+                    borderColor: 'border-orange-500/30',
+                    gradient: 'from-orange-600 to-orange-800'
+                };
+            case 'medium':
+                return {
+                    icon: Activity,
+                    label: 'Médio',
+                    color: 'text-yellow-500',
+                    bgColor: 'bg-yellow-500/20',
+                    borderColor: 'border-yellow-500/30',
+                    gradient: 'from-yellow-600 to-yellow-800'
+                };
+        }
+    };
+
+    return (
+        <div className="mb-8">
+            {/* Header */}
+            <div className="mb-6">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                        <Skull className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">Ações Tóxicas</h2>
+                        <p className="text-white/50">Ativos com indicadores de alerta</p>
+                    </div>
+                </div>
+
+                {/* Strategy Explanation */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-red-900/40 to-red-950/40 border border-red-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Shield className="w-5 h-5 text-red-400" />
+                            <h3 className="font-bold text-white">Evitar Armadilhas</h3>
+                        </div>
+                        <p className="text-sm text-white/60">Identifique ações com problemas fundamentais antes de investir.</p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-purple-900/40 to-purple-950/40 border border-purple-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                            <TrendingDown className="w-5 h-5 text-purple-400" />
+                            <h3 className="font-bold text-white">Short Selling</h3>
+                        </div>
+                        <p className="text-sm text-white/60">Oportunidades para traders experientes em operações vendidas.</p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-900/40 to-cyan-950/40 border border-cyan-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                            <RefreshCw className="w-5 h-5 text-cyan-400" />
+                            <h3 className="font-bold text-white">Turnaround Watch</h3>
+                        </div>
+                        <p className="text-sm text-white/60">Empresas em recuperação podem ser oportunidades de ouro.</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Toxic Stocks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {toxicStocks.map((stock, index) => {
+                    const analysis = analyzeToxicity(stock);
+                    const riskConfig = getRiskConfig(analysis.riskLevel);
+                    const RiskIcon = riskConfig.icon;
+
+                    return (
+                        <motion.div
+                            key={stock.papel}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className={`relative rounded-xl border ${riskConfig.borderColor} bg-gradient-to-br from-slate-800/80 to-slate-900/90 overflow-hidden cursor-pointer group hover:scale-[1.01] transition-transform`}
+                            onClick={() => onSelectStock(stock)}
+                        >
+                            {/* Risk Level Bar */}
+                            <div className={`h-1 bg-gradient-to-r ${riskConfig.gradient}`} />
+
+                            <div className="p-4">
+                                <div className="flex items-start justify-between mb-3">
+                                    {/* Stock Info */}
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-lg ${riskConfig.bgColor} flex items-center justify-center`}>
+                                            <Flame className={`w-5 h-5 ${riskConfig.color}`} />
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-white text-lg">{stock.papel}</h3>
+                                            <p className="text-white/40 text-sm">{stock.setor || 'N/A'}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Risk Badge */}
+                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${riskConfig.bgColor}`}>
+                                        <RiskIcon className={`w-4 h-4 ${riskConfig.color}`} />
+                                        <span className={`text-xs font-bold ${riskConfig.color}`}>{riskConfig.label}</span>
+                                    </div>
+                                </div>
+
+                                {/* Key Metrics */}
+                                <div className="grid grid-cols-4 gap-2 mb-3">
+                                    <div className="text-center p-2 rounded-lg bg-white/5">
+                                        <p className="text-white/40 text-xs">Cotação</p>
+                                        <p className="text-white font-medium">R$ {stock.cotacao?.toFixed(2) || '0'}</p>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/5">
+                                        <p className="text-white/40 text-xs">P/L</p>
+                                        <p className={`font-medium ${stock.p_l && stock.p_l < 0 ? 'text-red-400' : 'text-white'}`}>
+                                            {stock.p_l?.toFixed(1) || '0'}x
+                                        </p>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/5">
+                                        <p className="text-white/40 text-xs">ROE</p>
+                                        <p className={`font-medium ${stock.roe && stock.roe < 0 ? 'text-red-400' : 'text-white'}`}>
+                                            {stock.roe?.toFixed(1) || '0'}%
+                                        </p>
+                                    </div>
+                                    <div className="text-center p-2 rounded-lg bg-white/5">
+                                        <p className="text-white/40 text-xs">Score</p>
+                                        <p className="text-orange-400 font-medium">{stock.super_score?.toFixed(1) || '0'}</p>
+                                    </div>
+                                </div>
+
+                                {/* Alert Reasons */}
+                                <div className="space-y-1 mb-3">
+                                    {analysis.reasons.map((reason, i) => (
+                                        <div key={i} className="flex items-center gap-2 text-sm">
+                                            <AlertTriangle className={`w-3 h-3 ${riskConfig.color} flex-shrink-0`} />
+                                            <span className="text-white/70">{reason}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Turnaround Badge */}
+                                {analysis.turnaroundPotential && (
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                                        <RefreshCw className="w-4 h-4 text-cyan-400" />
+                                        <span className="text-sm text-cyan-400 font-medium">Potencial Turnaround</span>
+                                        <span className="text-xs text-white/40 ml-auto">P/VP baixo ou DY alto</span>
+                                    </div>
+                                )}
+
+                                {/* View Details CTA */}
+                                <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-xs text-white/40">Clique para análise completa</span>
+                                    <ChevronRight className="w-4 h-4 text-white/40" />
+                                </div>
+                            </div>
+                        </motion.div>
+                    );
+                })}
+            </div>
+
+            {/* Disclaimer */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10"
+            >
+                <div className="flex items-start gap-3">
+                    <Eye className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm text-white/60">
+                            <span className="font-medium text-white/80">Lembre-se:</span> Ações com indicadores ruins podem estar em momentos
+                            de crise temporária. Algumas se recuperam e geram retornos extraordinários. Faça sua própria análise antes de
+                            qualquer decisão de investimento.
+                        </p>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}

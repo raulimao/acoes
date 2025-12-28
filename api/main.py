@@ -555,33 +555,127 @@ async def root():
 
 @app.get("/api/stocks", response_model=List[dict])
 async def get_stocks(
+    # Score filters
     min_score: float = Query(0, description="Minimum super score"),
     max_score: float = Query(100, description="Maximum super score"),
+    # Sector filters
     setor: Optional[str] = Query(None, description="Filter by sector"),
+    subsetor: Optional[str] = Query(None, description="Filter by subsector"),
+    # Valuation filters
+    min_pl: Optional[float] = Query(None, description="Minimum P/L"),
+    max_pl: Optional[float] = Query(None, description="Maximum P/L"),
+    min_pvp: Optional[float] = Query(None, description="Minimum P/VP"),
+    max_pvp: Optional[float] = Query(None, description="Maximum P/VP"),
+    # Return filters
+    min_dy: Optional[float] = Query(None, description="Minimum Dividend Yield"),
+    min_roe: Optional[float] = Query(None, description="Minimum ROE"),
+    min_roic: Optional[float] = Query(None, description="Minimum ROIC"),
+    # Strategy scores
+    min_graham: Optional[float] = Query(None, description="Minimum Graham Score"),
+    min_greenblatt: Optional[float] = Query(None, description="Minimum Greenblatt Score"),
+    min_bazin: Optional[float] = Query(None, description="Minimum Bazin Score"),
+    min_qualidade: Optional[float] = Query(None, description="Minimum Quality Score"),
+    # Size/Liquidity
+    min_liquidity: Optional[float] = Query(None, description="Minimum liquidity (2 months)"),
+    company_type: Optional[str] = Query(None, description="blue_chips, mid_caps, small_caps"),
+    # Profitability
+    min_margin: Optional[float] = Query(None, description="Minimum net margin"),
+    min_growth: Optional[float] = Query(None, description="Minimum 5y revenue growth"),
+    # Pagination
     limit: int = Query(100, description="Max results"),
+    offset: int = Query(0, description="Offset for pagination"),
     sort_by: str = Query("super_score", description="Sort column"),
-    order: str = Query("desc", description="Sort order (asc/desc)")
+    order: str = Query("desc", description="Sort order (asc/desc)"),
+    # Free user mode
+    random_sample: bool = Query(False, description="Return random sample for free users")
 ):
-    """Get filtered and sorted stock data."""
+    """Get filtered and sorted stock data with 15+ premium filters."""
     df = get_stock_data()
     
     if df.empty:
         return []
     
-    # Filter by score
+    # Filter by super score
     df = df[(df["super_score"] >= min_score) & (df["super_score"] <= max_score)]
     
     # Filter by sector
     if setor:
         df = df[df["setor"] == setor]
     
+    # Filter by subsetor (if column exists)
+    if subsetor and "subsetor" in df.columns:
+        df = df[df["subsetor"] == subsetor]
+    
+    # P/L Range filter
+    if min_pl is not None:
+        df = df[df["p_l"] >= min_pl]
+    if max_pl is not None:
+        df = df[df["p_l"] <= max_pl]
+    
+    # P/VP Range filter
+    if min_pvp is not None:
+        df = df[df["p_vp"] >= min_pvp]
+    if max_pvp is not None:
+        df = df[df["p_vp"] <= max_pvp]
+    
+    # Dividend Yield filter
+    if min_dy is not None:
+        df = df[df["dividend_yield"] >= min_dy]
+    
+    # ROE filter
+    if min_roe is not None:
+        df = df[df["roe"] >= min_roe]
+    
+    # ROIC filter
+    if min_roic is not None:
+        df = df[df["roic"] >= min_roic]
+    
+    # Strategy score filters
+    if min_graham is not None and "score_graham" in df.columns:
+        df = df[df["score_graham"] >= min_graham]
+    if min_greenblatt is not None and "score_greenblatt" in df.columns:
+        df = df[df["score_greenblatt"] >= min_greenblatt]
+    if min_bazin is not None and "score_bazin" in df.columns:
+        df = df[df["score_bazin"] >= min_bazin]
+    if min_qualidade is not None and "score_qualidade" in df.columns:
+        df = df[df["score_qualidade"] >= min_qualidade]
+    
+    # Liquidity filter
+    if min_liquidity is not None and "liquidez_2meses" in df.columns:
+        df = df[df["liquidez_2meses"] >= min_liquidity]
+    
+    # Company type filter (based on price as proxy)
+    if company_type:
+        if company_type == "blue_chips":
+            df = df[df["cotacao"] >= 30]  # Large cap proxy
+        elif company_type == "mid_caps":
+            df = df[(df["cotacao"] >= 10) & (df["cotacao"] < 30)]
+        elif company_type == "small_caps":
+            df = df[df["cotacao"] < 10]
+    
+    # Margin filter
+    if min_margin is not None and "margem_liquida" in df.columns:
+        df = df[df["margem_liquida"] >= min_margin]
+    
+    # Growth filter
+    if min_growth is not None and "crescimento_receita_5a" in df.columns:
+        df = df[df["crescimento_receita_5a"] >= min_growth]
+    
     # Sort
     ascending = order.lower() == "asc"
     if sort_by in df.columns:
         df = df.sort_values(by=sort_by, ascending=ascending)
     
-    # Limit
-    df = df.head(limit)
+    # Random sample for free users (5 random from top 15)
+    if random_sample:
+        top_15 = df.head(15)
+        if len(top_15) > 5:
+            df = top_15.sample(n=5)
+        else:
+            df = top_15
+    else:
+        # Pagination
+        df = df.iloc[offset:offset + limit]
     
     # Convert to dict and handle NaN
     result = df.fillna(0).to_dict(orient="records")

@@ -19,13 +19,19 @@ import {
   BarChart3,
   PieChart,
   Target,
-  Skull
+  Skull,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import AIChat from './components/AIChat';
 import SuggestedPortfolio from './components/SuggestedPortfolio';
 import EngagementWidgets from './components/EngagementWidgets';
 import StockComparisonModal from '../components/StockComparisonModal';
 import StockCard from '../components/StockCard';
+import PremiumFilters, { FilterValues } from '../components/PremiumFilters';
+import Top3Podium from '../components/Top3Podium';
+import ToxicStocks from '../components/ToxicStocks';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -47,6 +53,10 @@ interface Stock {
   score_bazin?: number;
   score_qualidade?: number;
   super_score?: number;
+  margem_liquida?: number;
+  div_bruta_patrimonio?: number;
+  crescimento_receita_5a?: number;
+  liquidez_2meses?: number;
 }
 
 interface Stats {
@@ -66,9 +76,15 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [minScore, setMinScore] = useState(5);
-  // Filters
+  // Legacy Filters (keeping for compatibility)
   const [onlyBlueChips, setOnlyBlueChips] = useState(false);
   const [onlySmallCaps, setOnlySmallCaps] = useState(false);
+
+  // New Premium Features
+  const [sectors, setSectors] = useState<string[]>([]);
+  const [premiumFilters, setPremiumFilters] = useState<FilterValues | null>(null);
+  const [displayedStocks, setDisplayedStocks] = useState<Stock[]>([]);
+  const [totalStocksCount, setTotalStocksCount] = useState(0);
 
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
@@ -90,9 +106,22 @@ export default function Dashboard() {
     });
   };
 
+  // Fetch sectors on mount
+  useEffect(() => {
+    const fetchSectors = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/sectors`);
+        setSectors(res.data);
+      } catch (error) {
+        console.error('Error fetching sectors:', error);
+      }
+    };
+    fetchSectors();
+  }, []);
+
   useEffect(() => {
     fetchData();
-  }, [minScore, activeTab]); // Re-fetch when tab changes (to handle sorting logic if needed from API)
+  }, [minScore, activeTab, premiumFilters]); // Re-fetch when filters change
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -100,6 +129,27 @@ export default function Dashboard() {
       router.push('/login');
     }
   }, [authLoading, isAuthenticated, router]);
+
+  // Calculate displayed stocks based on premium status
+  useEffect(() => {
+    const isPremium = user?.is_premium || false;
+
+    if (isPremium) {
+      // Premium users see all stocks
+      setDisplayedStocks(stocks);
+    } else {
+      // Free users see 5 random stocks from top 15
+      const top15 = stocks.slice(0, 15);
+      if (top15.length > 5) {
+        // Shuffle and take 5
+        const shuffled = [...top15].sort(() => Math.random() - 0.5);
+        setDisplayedStocks(shuffled.slice(0, 5));
+      } else {
+        setDisplayedStocks(top15);
+      }
+    }
+    setTotalStocksCount(stocks.length);
+  }, [stocks, user?.is_premium]);
 
   // Debug: Log when selectedStock changes
   useEffect(() => {
@@ -109,18 +159,38 @@ export default function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // For Anti-Ranking, we want distinct logic: maybe 0 to 5 score
-      // For Overview, we use minScore
+      // For Anti-Ranking, we want distinct logic
       const isAntiRanking = activeTab === 'anti-ranking';
+      const isPremium = user?.is_premium || false;
 
-      let endpoint = `${API_URL}/stocks?limit=50`;
+      let endpoint = `${API_URL}/stocks?limit=100`;
 
       if (isAntiRanking) {
-        // Fetch worst stocks: max_score=15 (min in db is ~9), sort_by=super_score, order=asc
+        // Fetch worst stocks
         endpoint += `&max_score=15&sort_by=super_score&order=asc`;
       } else {
-        // Normal fetching
+        // Normal fetching with min score
         endpoint += `&min_score=${minScore}`;
+      }
+
+      // Apply premium filters if set
+      if (premiumFilters && isPremium) {
+        if (premiumFilters.setor) endpoint += `&setor=${encodeURIComponent(premiumFilters.setor)}`;
+        if (premiumFilters.companyType) endpoint += `&company_type=${premiumFilters.companyType}`;
+        if (premiumFilters.minPl) endpoint += `&min_pl=${premiumFilters.minPl}`;
+        if (premiumFilters.maxPl) endpoint += `&max_pl=${premiumFilters.maxPl}`;
+        if (premiumFilters.minPvp) endpoint += `&min_pvp=${premiumFilters.minPvp}`;
+        if (premiumFilters.maxPvp) endpoint += `&max_pvp=${premiumFilters.maxPvp}`;
+        if (premiumFilters.minDy) endpoint += `&min_dy=${premiumFilters.minDy}`;
+        if (premiumFilters.minRoe) endpoint += `&min_roe=${premiumFilters.minRoe}`;
+        if (premiumFilters.minRoic) endpoint += `&min_roic=${premiumFilters.minRoic}`;
+        if (premiumFilters.minGraham) endpoint += `&min_graham=${premiumFilters.minGraham}`;
+        if (premiumFilters.minGreenblatt) endpoint += `&min_greenblatt=${premiumFilters.minGreenblatt}`;
+        if (premiumFilters.minBazin) endpoint += `&min_bazin=${premiumFilters.minBazin}`;
+        if (premiumFilters.minQualidade) endpoint += `&min_qualidade=${premiumFilters.minQualidade}`;
+        if (premiumFilters.minLiquidity) endpoint += `&min_liquidity=${premiumFilters.minLiquidity}`;
+        if (premiumFilters.minMargin) endpoint += `&min_margin=${premiumFilters.minMargin}`;
+        if (premiumFilters.minGrowth) endpoint += `&min_growth=${premiumFilters.minGrowth}`;
       }
 
       const [stocksRes, statsRes] = await Promise.all([
@@ -362,7 +432,7 @@ export default function Dashboard() {
           {/* Tab Content */}
           <AnimatePresence mode="wait">
             {/* Overview Tab */}
-            {(activeTab === 'overview' || activeTab === 'anti-ranking') && (
+            {activeTab === 'overview' && (
               <motion.div
                 key={activeTab}
                 initial={{ opacity: 0, y: 20 }}
@@ -370,94 +440,61 @@ export default function Dashboard() {
                 exit={{ opacity: 0, y: -20 }}
               >
                 {/* Engagement Widgets (Alerts & Reports) */}
-                {activeTab === 'overview' && <EngagementWidgets />}
+                <EngagementWidgets />
 
-                {/* Score Filter & Toggles - Only show on Overview */}
-                {activeTab === 'overview' && (
-                  <div className="card mb-8">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-1">Filtros Inteligentes</h3>
-                        <p className="text-white/50 text-sm">
-                          Mínimo Super Score: <span className="text-cyan-400 font-bold text-lg">{minScore}</span>
-                        </p>
-                      </div>
+                {/* Premium Filters Component */}
+                <PremiumFilters
+                  isPremium={user?.is_premium || false}
+                  sectors={sectors}
+                  onFiltersChange={setPremiumFilters}
+                  onUpgradeClick={() => router.push('/pricing')}
+                />
 
-                      <div className="flex items-center gap-6">
-                        {/* Range Slider */}
-                        <div className="flex items-center gap-4">
-                          <span className="text-white/40">0</span>
-                          <input
-                            type="range"
-                            min="0"
-                            max="20"
-                            step="0.5"
-                            value={minScore}
-                            onChange={(e) => setMinScore(Number(e.target.value))}
-                            className="w-64 accent-cyan-400 h-2 bg-white/10 rounded-lg appearance-none cursor-pointer"
-                          />
-                          <span className="text-white/40">20</span>
-                        </div>
-
-                        {/* Toggles */}
-                        <div className="h-8 w-px bg-white/10 mx-2" />
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => { setOnlyBlueChips(!onlyBlueChips); setOnlySmallCaps(false); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${onlyBlueChips ? 'bg-blue-600 border-blue-500 text-white' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
-                          >
-                            💎 Blue Chips
-                          </button>
-                          <button
-                            onClick={() => { setOnlySmallCaps(!onlySmallCaps); setOnlyBlueChips(false); }}
-                            className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${onlySmallCaps ? 'bg-purple-600 border-purple-500 text-white' : 'bg-white/5 border-white/10 text-white/40 hover:text-white'}`}
-                          >
-                            🚀 Small Caps
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'anti-ranking' && (
-                  <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-red-900/40 to-orange-900/40 border border-red-500/20">
-                    <div className="flex items-center gap-4 mb-2">
-                      <Skull className="w-8 h-8 text-red-500" />
-                      <h2 className="text-2xl font-bold text-white">Zona de Perigo: Ações Tóxicas</h2>
-                    </div>
-                    <p className="text-white/60">
-                      Estas ações possuem os piores indicadores fundamentais. <span className="text-red-400 font-bold">Cuidado redobrado</span> ao investir nestes ativos.
-                    </p>
-                  </div>
-                )}
-
-
-
-                {/* Stock Cards Grid (Replaces Table) */}
+                {/* Stock Cards Grid */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">
-                      {activeTab === 'anti-ranking' ? 'Ranking Reverso (Piores Scores)' : 'Top Ações por Super Score'}
-                    </h2>
-                    <span className="text-white/50">{filteredStocks.length} resultados</span>
+                    <h2 className="text-xl font-bold">Top Ações por Super Score</h2>
+                    <span className="text-white/50">
+                      {user?.is_premium
+                        ? `${displayedStocks.length} resultados`
+                        : `${displayedStocks.length} de ${totalStocksCount}+ ações`
+                      }
+                    </span>
                   </div>
 
+                  {/* CTA for Free Users */}
                   {user && !user.is_premium && (
-                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 text-yellow-200 text-sm flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-yellow-400" />
-                        <span>Você está vendo apenas a Top 1 gratuita. Assine o Pro para ver o ranking completo.</span>
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20"
+                    >
+                      <div className="flex items-center justify-between flex-wrap gap-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                            <Lock className="w-5 h-5 text-yellow-400" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-white">
+                              {totalStocksCount - displayedStocks.length}+ ações ocultas
+                            </p>
+                            <p className="text-sm text-white/60">
+                              Você está vendo 5 ações aleatórias. Desbloqueie todas!
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => router.push('/pricing')}
+                          className="px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform shadow-lg shadow-yellow-500/20"
+                        >
+                          Desbloquear Ranking Completo
+                        </button>
                       </div>
-                      <button className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-black font-bold rounded-lg text-xs transition-colors">
-                        Assinar Agora
-                      </button>
-                    </div>
+                    </motion.div>
                   )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredStocks.map((stock, index) => (
+                    {displayedStocks.map((stock, index) => (
                       <StockCard
                         key={stock.papel}
                         stock={stock}
@@ -470,12 +507,57 @@ export default function Dashboard() {
                     ))}
                   </div>
 
-                  {filteredStocks.length === 0 && (
+                  {/* Blurred placeholder cards for free users */}
+                  {user && !user.is_premium && (
+                    <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className="relative rounded-xl bg-slate-800/50 border border-white/10 p-6 overflow-hidden cursor-pointer group"
+                          onClick={() => router.push('/pricing')}
+                        >
+                          <div className="blur-sm opacity-50">
+                            <div className="h-6 w-20 bg-white/10 rounded mb-2" />
+                            <div className="h-4 w-32 bg-white/5 rounded mb-4" />
+                            <div className="h-12 w-16 bg-cyan-500/20 rounded mb-4" />
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="h-8 bg-white/5 rounded" />
+                              <div className="h-8 bg-white/5 rounded" />
+                            </div>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="text-center">
+                              <Lock className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                              <p className="text-sm font-bold text-yellow-400">Clique para desbloquear</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {displayedStocks.length === 0 && (
                     <div className="text-center py-12 text-white/40">
                       Nenhuma ação encontrada com os filtros atuais.
                     </div>
                   )}
                 </div>
+              </motion.div>
+            )}
+
+            {/* Anti-Ranking Tab - Toxic Stocks */}
+            {activeTab === 'anti-ranking' && (
+              <motion.div
+                key="anti-ranking"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <ToxicStocks
+                  stocks={stocks}
+                  isPremium={user?.is_premium || false}
+                  onSelectStock={setSelectedStock}
+                />
               </motion.div>
             )}
 
@@ -489,59 +571,45 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                  {/* Top 3 Podium */}
-                  {stocks.slice(0, 3).map((stock, index) => (
-                    <motion.div
-                      key={stock.papel}
-                      className={`card relative overflow-hidden ${index === 0 ? 'lg:order-2 border-2 border-yellow-500/50' :
-                        index === 1 ? 'lg:order-1 border-2 border-gray-400/50' :
-                          'lg:order-3 border-2 border-orange-600/50'
-                        }`}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.15 }}
-                    >
-                      <div className={`absolute top-0 left-0 right-0 h-1 ${index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-600' :
-                        index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-500' :
-                          'bg-gradient-to-r from-orange-400 to-orange-600'
-                        }`} />
+                {/* New Top 3 Podium Component */}
+                <Top3Podium
+                  stocks={stocks}
+                  onSelectStock={setSelectedStock}
+                />
 
-                      <div className="text-center py-4">
-                        <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center text-2xl font-bold mb-4 ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                            'bg-gradient-to-br from-orange-400 to-orange-600'
-                          }`}>
-                          {index + 1}°
-                        </div>
-
-                        <h3 className="text-2xl font-bold gradient-text mb-2">{stock.papel}</h3>
-                        <p className="text-white/50 mb-4">{stock.setor || 'Sem setor'}</p>
-
-                        <div className="stat-value text-4xl mb-2">
-                          {stock.super_score?.toFixed(1)}
-                        </div>
-                        <p className="text-white/40 text-sm">Super Score</p>
-
-                        <div className="grid grid-cols-2 gap-4 mt-6 text-sm">
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <p className="text-white/40">P/L</p>
-                            <p className="font-bold">{stock.p_l?.toFixed(2)}</p>
-                          </div>
-                          <div className="bg-white/5 rounded-lg p-3">
-                            <p className="text-white/40">DY</p>
-                            <p className="font-bold">{stock.dividend_yield?.toFixed(2)}%</p>
-                          </div>
+                {/* Full ranking table - Premium Only */}
+                <div className="card">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-bold">Ranking Completo</h3>
+                    {!user?.is_premium && (
+                      <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                        <Lock className="w-4 h-4" />
+                        <span>Tabela completa apenas para assinantes</span>
+                      </div>
+                    )}
+                  </div>
+                  {user?.is_premium ? (
+                    <StockTable stocks={stocks} onSelect={setSelectedStock} showRank />
+                  ) : (
+                    <div className="relative">
+                      <div className="blur-sm opacity-50 pointer-events-none">
+                        <StockTable stocks={stocks.slice(0, 5)} onSelect={() => { }} showRank />
+                      </div>
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-xl">
+                        <div className="text-center">
+                          <Lock className="w-12 h-12 text-yellow-400 mx-auto mb-3" />
+                          <p className="text-lg font-bold text-white mb-2">Ranking Completo Bloqueado</p>
+                          <p className="text-sm text-white/60 mb-4">Veja as {stocks.length}+ ações ranqueadas</p>
+                          <button
+                            onClick={() => router.push('/pricing')}
+                            className="px-6 py-3 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg hover:scale-105 transition-transform"
+                          >
+                            Desbloquear Ranking
+                          </button>
                         </div>
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                {/* Full ranking table */}
-                <div className="card">
-                  <h3 className="text-xl font-bold mb-6">Ranking Completo</h3>
-                  <StockTable stocks={filteredStocks} onSelect={setSelectedStock} showRank />
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
