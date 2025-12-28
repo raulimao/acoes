@@ -492,6 +492,50 @@ async def stripe_webhook(request: Request):
                 logger.error("upgrade_failed", email=email)
         else:
             logger.warning("payment_no_email", session_id=session.get('id'))
+    
+    # Handle subscription cancellation
+    elif event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        customer_id = subscription.get('customer')
+        
+        # Get customer email from Stripe
+        try:
+            import stripe
+            stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+            customer = stripe.Customer.retrieve(customer_id)
+            email = customer.get('email')
+            
+            if email:
+                logger.info("subscription_cancelled", email=email)
+                success = update_user_premium(email, False)
+                if success:
+                    logger.info("user_downgraded", email=email)
+                else:
+                    logger.error("downgrade_failed", email=email)
+        except Exception as e:
+            logger.error("cancellation_handling_failed", error=str(e))
+    
+    # Handle subscription updates (e.g., payment failed, status change)
+    elif event['type'] == 'customer.subscription.updated':
+        subscription = event['data']['object']
+        status = subscription.get('status')
+        customer_id = subscription.get('customer')
+        
+        # Downgrade if subscription is no longer active
+        if status in ['canceled', 'unpaid', 'past_due']:
+            try:
+                import stripe
+                stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+                customer = stripe.Customer.retrieve(customer_id)
+                email = customer.get('email')
+                
+                if email:
+                    logger.info("subscription_status_changed", email=email, status=status)
+                    if status == 'canceled':
+                        update_user_premium(email, False)
+                        logger.info("user_downgraded_status", email=email)
+            except Exception as e:
+                logger.error("subscription_update_handling_failed", error=str(e))
             
     return {"status": "success"}
 
