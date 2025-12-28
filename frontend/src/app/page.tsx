@@ -22,7 +22,8 @@ import {
   Skull,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  FileText
 } from 'lucide-react';
 import AIChat from './components/AIChat';
 import SuggestedPortfolio from './components/SuggestedPortfolio';
@@ -239,6 +240,36 @@ export default function Dashboard() {
     setTimeout(() => setNotification(null), 3000);
   };
 
+  // Download Weekly Report PDF (Premium Only)
+  const downloadReport = async () => {
+    if (!user?.is_premium) {
+      showNotification('error', '🔒 Relatório semanal é um recurso Premium');
+      router.push('/pricing');
+      return;
+    }
+
+    try {
+      showNotification('success', 'Gerando relatório...');
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/reports/weekly`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob',
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'relatorio_semanal.pdf');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      showNotification('success', 'Relatório baixado com sucesso!');
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      showNotification('error', 'Erro ao baixar relatório');
+    }
+  };
+
   const filteredStocks = stocks.filter(s => {
     const matchesSearch = s.papel.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.setor?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -366,7 +397,6 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* Refresh */}
                 <motion.button
                   onClick={fetchData}
                   className="dashboard-btn-icon"
@@ -375,6 +405,17 @@ export default function Dashboard() {
                   whileTap={{ scale: 0.95 }}
                 >
                   <RefreshCw style={{ width: '1.25rem', height: '1.25rem' }} className={loading ? 'animate-spin' : ''} />
+                </motion.button>
+
+                {/* Download Report Button */}
+                <motion.button
+                  onClick={downloadReport}
+                  className={`dashboard-btn-icon ${user?.is_premium ? 'text-purple-400 hover:text-purple-300' : 'text-gray-500'}`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  title={user?.is_premium ? 'Baixar Relatório Semanal' : 'Relatório Premium'}
+                >
+                  <FileText style={{ width: '1.25rem', height: '1.25rem' }} />
                 </motion.button>
 
                 {/* User Menu */}
