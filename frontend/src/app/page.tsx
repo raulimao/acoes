@@ -443,83 +443,73 @@ export default function Dashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
               >
-                {/* Engagement Widgets (Alerts & Reports) */}
-                <EngagementWidgets />
+                {/* Unified Premium Banner for Free Users - Single CTA */}
+                {user && !user.is_premium && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mb-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 via-orange-500/10 to-yellow-500/10 border border-yellow-500/20"
+                  >
+                    <div className="flex items-center justify-between flex-wrap gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-yellow-400" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-white">
+                            Desbloqueie o Ranking Completo
+                          </p>
+                          <p className="text-sm text-white/60">
+                            Top 3, scores, filtros avançados e {totalStocksCount}+ ações
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => router.push('/pricing')}
+                        className="px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform shadow-lg shadow-yellow-500/20"
+                      >
+                        Assinar Agora
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
 
-                {/* FOMO Widget - Only for Free Users */}
-                <FOMOWidget isPremium={user?.is_premium || false} topStocks={stocks.slice(0, 5)} />
-
-                {/* Top 3 Podium - Premium gets full view, Free gets teaser */}
+                {/* Top 3 Podium - Premium Full View, Free Simple Preview */}
                 {user?.is_premium ? (
                   <Top3Podium
                     stocks={stocks}
                     onSelectStock={setSelectedStock}
                   />
                 ) : (
-                  // Free User Top 3 Preview
-                  <div className="mb-8 relative">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center">
-                          <Trophy className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-white">Top 3 da Semana</h2>
-                          <p className="text-white/50 text-sm">Veja uma prévia das melhores ações</p>
-                        </div>
-                      </div>
-                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-3 py-1 rounded-full flex items-center gap-1">
-                        <Lock className="w-3 h-3" /> Premium
+                  // Free User - Simple Top 3 Preview (no extra CTA)
+                  <div className="mb-6">
+                    <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-yellow-400" />
+                      Top 3 da Semana
+                      <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full ml-2">
+                        <Lock className="w-3 h-3 inline mr-1" />Premium
                       </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    </h2>
+                    <div className="grid grid-cols-3 gap-3">
                       {stocks.slice(0, 3).map((stock, index) => (
                         <div
                           key={stock.papel}
-                          className="relative rounded-xl bg-gradient-to-br from-slate-800/80 to-slate-900/90 border border-yellow-500/20 p-4 cursor-pointer hover:border-yellow-500/40 transition-colors"
+                          className="relative rounded-lg bg-slate-800/60 border border-yellow-500/20 p-3 cursor-pointer hover:border-yellow-500/40 transition-colors text-center"
                           onClick={() => router.push('/pricing')}
                         >
-                          {/* Position Badge */}
-                          <div className={`absolute -top-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-                            index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                              'bg-gradient-to-br from-orange-400 to-orange-600'
+                          <div className={`absolute -top-2 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${index === 0 ? 'bg-yellow-500' :
+                            index === 1 ? 'bg-gray-400' :
+                              'bg-orange-500'
                             }`}>
-                            {index + 1}°
+                            {index + 1}
                           </div>
-
-                          {/* Stock Name - Visible */}
-                          <h3 className="text-lg font-bold text-white mb-2 mt-2">{stock.papel}</h3>
-                          <p className="text-sm text-white/50 mb-3">{stock.setor || 'Diversos'}</p>
-
-                          {/* Score - Blurred */}
-                          <div className="relative">
-                            <div className="blur-sm select-none">
-                              <div className="text-2xl font-bold text-cyan-400">??.??</div>
-                              <p className="text-xs text-white/40">Super Score</p>
-                            </div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Lock className="w-5 h-5 text-yellow-400" />
-                            </div>
+                          <h3 className="font-bold text-white mt-2">{stock.papel}</h3>
+                          <p className="text-xs text-white/40">{stock.setor?.slice(0, 15) || 'N/A'}</p>
+                          <div className="mt-2 blur-sm select-none">
+                            <span className="text-lg font-bold text-cyan-400">??</span>
                           </div>
                         </div>
                       ))}
-                    </div>
-
-                    {/* CTA */}
-                    <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20">
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                          <p className="font-bold text-white">Veja os scores completos do Top 3</p>
-                          <p className="text-sm text-white/60">Descubra por que essas ações são as melhores</p>
-                        </div>
-                        <button
-                          onClick={() => router.push('/pricing')}
-                          className="px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform"
-                        >
-                          Desbloquear Top 3
-                        </button>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -544,36 +534,7 @@ export default function Dashboard() {
                     </span>
                   </div>
 
-                  {/* CTA for Free Users */}
-                  {user && !user.is_premium && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mb-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/20"
-                    >
-                      <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                            <Lock className="w-5 h-5 text-yellow-400" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-white">
-                              {totalStocksCount - displayedStocks.length}+ ações ocultas
-                            </p>
-                            <p className="text-sm text-white/60">
-                              Você está vendo 3 ações aleatórias do ranking. Desbloqueie o Ranking Geral semanal!
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => router.push('/pricing')}
-                          className="px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform shadow-lg shadow-yellow-500/20"
-                        >
-                          Desbloquear Ranking Completo
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
+                  {/* CTA for Free Users - Removed (using unified banner at top) */}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {displayedStocks.map((stock, index) => (
