@@ -22,3 +22,4 @@ stripe>=7.0.0
 structlog>=24.1.0
 resend>=0.8.0
 matplotlib>=3.8.0
+# Force Rebuild 2025-12-28
