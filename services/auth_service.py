@@ -199,18 +199,25 @@ def verify_user(email: str, password: str):
         
     Returns:
         User dict with username, name, email, is_premium if valid, None otherwise
+        Raises:
+            Exception: If authentication fails with specific message
     """
     try:
         client = get_supabase_client()
         
         # For email/password auth, use Supabase Auth
         # Note: This requires email/password to be set up in Supabase Auth
-        auth_response = client.auth.sign_in_with_password({
+        data = {
             "email": email,
             "password": password
-        })
+        }
+        
+        auth_response = client.auth.sign_in_with_password(data)
         
         if auth_response.user:
+            # Check if email is confirmed (Supabase might return user even if not confirmed but sessions might be restricted)
+            # However, usually sign_in throws error if config requires confirmation.
+            
             # Get profile data
             profile = client.table("profiles").select("*").eq("email", email).single().execute()
             
@@ -224,6 +231,11 @@ def verify_user(email: str, password: str):
         
         return None
     except Exception as e:
+        # Check for specific "Email not confirmed" error message from Supabase
+        error_msg = str(e).lower()
+        if "email not confirmed" in error_msg:
+            raise Exception("EmailNotConfirmed")
+        
         print(f"Error verifying user: {e}")
         return None
 

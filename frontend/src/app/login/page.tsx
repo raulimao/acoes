@@ -213,6 +213,8 @@ export default function LoginPage() {
                                     <User className="login-input-icon" />
                                     <input
                                         type="text"
+                                        id="name"
+                                        name="name"
                                         value={formData.name}
                                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                         placeholder="Seu nome"
@@ -229,6 +231,8 @@ export default function LoginPage() {
                                 <Mail className="login-input-icon" />
                                 <input
                                     type="email"
+                                    id="email"
+                                    name="email"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     placeholder="seu@email.com"
@@ -245,6 +249,8 @@ export default function LoginPage() {
                                 <Lock className="login-input-icon" />
                                 <input
                                     type={showPassword ? 'text' : 'password'}
+                                    id="password"
+                                    name="password"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     placeholder="••••••••"

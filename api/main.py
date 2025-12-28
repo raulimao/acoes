@@ -262,7 +262,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
 @app.post("/api/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
     """Authenticate user and return JWT token."""
-    user = verify_user(request.email, request.password)
+    try:
+        user = verify_user(request.email, request.password)
+    except Exception as e:
+        if str(e) == "EmailNotConfirmed":
+            raise HTTPException(
+                status_code=403, 
+                detail="Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada."
+            )
+        raise e
     
     if not user:
         raise HTTPException(status_code=401, detail="Email ou senha incorretos")
