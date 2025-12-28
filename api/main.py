@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from fastapi import FastAPI, HTTPException, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 import pandas as pd
 from datetime import datetime, timedelta
@@ -183,9 +183,9 @@ class LoginRequest(BaseModel):
 
 
 class RegisterRequest(BaseModel):
-    name: str
-    email: str
-    password: str
+    name: str = Field(..., min_length=2, description="Nome completo do usuário")
+    email: str = Field(..., min_length=5, description="Email válido")
+    password: str = Field(..., min_length=6, description="Senha com mínimo 6 caracteres")
 
 
 class TokenResponse(BaseModel):
