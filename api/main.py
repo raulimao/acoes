@@ -300,21 +300,30 @@ async def login(request: LoginRequest):
 @app.post("/api/auth/register", response_model=TokenResponse)
 async def register(request: RegisterRequest):
     """Register new user and return JWT token."""
-    # Check if user already exists
+    # Check if user already exists in profiles
     existing = get_user_by_email(request.email)
     if existing:
-        raise HTTPException(status_code=400, detail="Email já cadastrado")
+        raise HTTPException(status_code=400, detail="Email já cadastrado. Tente fazer login.")
     
     # Create username from email
     username = request.email.split("@")[0]
     
     # Register in Supabase Auth + Profile
-    success = register_supabase_user(username, request.name, request.email, request.password)
-    if not success:
-        # Check if it failed because email exists in Auth but not Profile (edge case)
-        raise HTTPException(status_code=400, detail="Erro ao criar conta. Email inválido ou já em uso.")
+    success, message = register_supabase_user(username, request.name, request.email, request.password)
     
-    # Create token
+    if not success:
+        raise HTTPException(status_code=400, detail=message)
+    
+    # Handle email confirmation required
+    if message == "confirm_email":
+        # User created but needs to confirm email
+        # Return a special response indicating this
+        raise HTTPException(
+            status_code=202,  # Accepted
+            detail="Conta criada com sucesso! Verifique seu email para confirmar o cadastro."
+        )
+    
+    # Create token (only if no email confirmation required)
     access_token = create_access_token(
         data={"sub": request.email, "name": request.name}
     )

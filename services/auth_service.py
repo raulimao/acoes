@@ -186,10 +186,16 @@ def add_user(username: str, name: str, email: str, password: str = None, is_prem
 
 
 
-def register_supabase_user(username: str, name: str, email: str, password: str) -> bool:
+def register_supabase_user(username: str, name: str, email: str, password: str) -> tuple[bool, str]:
     """
     Register a new user via Supabase Auth (Sign Up).
     This ensures the user exists in auth.users before creating the profile.
+    
+    Returns:
+        Tuple of (success: bool, message: str)
+        - (True, "success") if registration succeeded
+        - (True, "confirm_email") if user created but needs email confirmation
+        - (False, "error_message") if registration failed
     """
     try:
         client = get_supabase_client()
@@ -203,30 +209,59 @@ def register_supabase_user(username: str, name: str, email: str, password: str) 
             }
         })
         
-        if not res.user or not res.user.id:
-            print("Error: Sign up failed, no user returned")
-            return False
-            
+        # Check if user was created
+        if not res.user:
+            print(f"Sign up failed: no user returned")
+            return (False, "Erro ao criar conta. Tente novamente.")
+        
         user_id = res.user.id
         
-        # 2. Create Profile
-        # Note: If you have a Trigger in Supabase that auto-creates profiles,
-        # this might cause a duplicate key error. But based on the user's error,
-        # it seems they don't (or they wouldn't have FK issues with missing users).
+        # Check if email confirmation is required
+        # If user exists but session is None, email confirmation is pending
+        if res.user and res.session is None:
+            # User created, awaiting email confirmation
+            # The trigger should create the profile, but let's ensure it exists
+            try:
+                client.table("profiles").upsert({
+                    "id": user_id,
+                    "username": username,
+                    "name": name,
+                    "email": email,
+                    "is_premium": False
+                }).execute()
+            except Exception as profile_err:
+                print(f"Profile creation note (may be handled by trigger): {profile_err}")
+            
+            return (True, "confirm_email")
         
-        client.table("profiles").upsert({
-            "id": user_id,
-            "username": username,
-            "name": name,
-            "email": email,
-            "is_premium": False
-        }).execute()
+        # 2. User created with session (email confirmation not required)
+        # Create/update profile
+        try:
+            client.table("profiles").upsert({
+                "id": user_id,
+                "username": username,
+                "name": name,
+                "email": email,
+                "is_premium": False
+            }).execute()
+        except Exception as profile_err:
+            print(f"Profile creation note: {profile_err}")
         
-        return True
+        return (True, "success")
     
     except Exception as e:
+        error_msg = str(e).lower()
         print(f"Error registering supabase user: {e}")
-        return False
+        
+        # Check for specific errors
+        if "already registered" in error_msg or "already exists" in error_msg:
+            return (False, "Este email já está cadastrado. Tente fazer login.")
+        if "invalid email" in error_msg:
+            return (False, "Email inválido. Verifique e tente novamente.")
+        if "weak password" in error_msg or "password" in error_msg:
+            return (False, "Senha muito fraca. Use pelo menos 6 caracteres.")
+        
+        return (False, "Erro ao criar conta. Tente novamente.")
 
 
 def upsert_oauth_user(email: str, name: str):
