@@ -19,6 +19,8 @@ export default function LoginPage() {
         password: '',
         name: ''
     });
+    const [validationError, setValidationError] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
     // Redirect if already authenticated
     useEffect(() => {
@@ -30,19 +32,23 @@ export default function LoginPage() {
     // Clear error when switching modes
     useEffect(() => {
         clearError();
+        setValidationError(null);
+        setSuccessMessage(null);
     }, [isLogin]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setValidationError(null);
+        setSuccessMessage(null);
+        clearError();
 
         let success: boolean;
         if (isLogin) {
             success = await login(formData.email, formData.password);
         } else {
             if (!acceptedTerms) {
-                // We need to expose a setError method or use alert temporarily if error state is handled inside hook only
-                alert("Você precisa concordar com os Termos de Uso e Política de Privacidade.");
+                setValidationError("Você precisa concordar com os Termos de Uso e Política de Privacidade.");
                 setLoading(false);
                 return;
             }
@@ -188,14 +194,26 @@ export default function LoginPage() {
                     </div>
 
                     {/* Error Message */}
-                    {error && (
+                    {(error || validationError) && (
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="login-error"
                         >
                             <AlertCircle style={{ width: '1.25rem', height: '1.25rem', color: '#f87171', flexShrink: 0 }} />
-                            <p className="login-error-text">{error}</p>
+                            <p className="login-error-text">{error || validationError}</p>
+                        </motion.div>
+                    )}
+
+                    {/* Success Message */}
+                    {successMessage && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center gap-3"
+                        >
+                            <Check style={{ width: '1.25rem', height: '1.25rem', color: '#10b981', flexShrink: 0 }} />
+                            <p className="text-sm text-emerald-200">{successMessage}</p>
                         </motion.div>
                     )}
 
@@ -328,12 +346,14 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={async () => {
+                                        setValidationError(null);
+                                        setSuccessMessage(null);
                                         if (!formData.email) {
-                                            alert("Preencha o campo de email acima.");
+                                            setValidationError("Preencha o campo de email acima.");
                                             return;
                                         }
                                         const sent = await resendConfirmation(formData.email);
-                                        if (sent) alert("Email de confirmação reenviado! Verifique sua caixa de entrada.");
+                                        if (sent) setSuccessMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
                                     }}
                                     className="text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4"
                                 >

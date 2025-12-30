@@ -15,6 +15,7 @@ export default function PricingPage() {
     const [isLoadingCheckout, setIsLoadingCheckout] = useState(false);
     const [isPortalLoading, setIsPortalLoading] = useState(false);
     const [openFaq, setOpenFaq] = useState<number | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubscribe = async () => {
         if (!user) {
@@ -23,6 +24,7 @@ export default function PricingPage() {
         }
 
         setIsLoadingCheckout(true);
+        setError(null);
         try {
             const { data } = await axios.post(`${API_URL}/payments/checkout`, {
                 return_url: window.location.origin
@@ -34,7 +36,7 @@ export default function PricingPage() {
             window.location.href = data.url;
         } catch (error) {
             console.error('Error creating checkout session:', error);
-            alert('Erro ao iniciar pagamento. Tente novamente.');
+            setError('Erro ao iniciar pagamento. Tente novamente mais tarde.');
             setIsLoadingCheckout(false);
         }
     };
@@ -42,6 +44,7 @@ export default function PricingPage() {
     const handlePortal = async () => {
         if (!user) return;
         setIsPortalLoading(true);
+        setError(null);
         try {
             const { data } = await axios.post(`${API_URL}/payments/portal`, {
                 return_url: window.location.href
@@ -53,7 +56,7 @@ export default function PricingPage() {
             window.location.href = data.url;
         } catch (error) {
             console.error('Error accessing portal:', error);
-            alert('Erro ao acessar gerenciamento de assinatura.');
+            setError('Erro ao acessar gerenciamento de assinatura.');
             setIsPortalLoading(false);
         }
     };
@@ -86,6 +89,18 @@ export default function PricingPage() {
             </div>
 
             <div className="relative font-sans w-full max-w-7xl mx-auto px-6 py-20 md:py-32 z-10 flex flex-col items-center gap-24">
+
+                {/* Error Banner */}
+                {error && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full max-w-md bg-red-500/10 border border-red-500/20 text-red-200 px-6 py-4 rounded-xl flex items-center justify-center gap-3 z-20"
+                    >
+                        <Shield className="w-5 h-5 text-red-400" />
+                        <span className="font-medium">{error}</span>
+                    </motion.div>
+                )}
 
                 {/* Header Section */}
                 <div className="text-center space-y-6 max-w-4xl mx-auto flex flex-col items-center">

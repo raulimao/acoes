@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { Lock } from 'lucide-react';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -16,8 +17,10 @@ interface Alert {
 
 export default function EngagementWidgets() {
     const { user } = useAuth();
+    const router = useRouter();
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [loading, setLoading] = useState(true);
+    const [downloadError, setDownloadError] = useState<string | null>(null);
 
     useEffect(() => {
         fetchAlerts();
@@ -36,12 +39,13 @@ export default function EngagementWidgets() {
 
     const downloadReport = async () => {
         if (!user?.is_premium) {
-            alert("🔒 Recurso Premium: Assine o Pro para baixar relatórios semanais em PDF.");
+            router.push('/pricing');
             return;
         }
 
         try {
             setLoading(true);
+            setDownloadError(null);
             const token = localStorage.getItem('token');
             const response = await axios.get(`${API_URL}/reports/weekly`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -58,7 +62,9 @@ export default function EngagementWidgets() {
             link.parentNode?.removeChild(link);
         } catch (error) {
             console.error('Error downloading report:', error);
-            alert("Erro ao baixar relatório. Tente novamente.");
+            setDownloadError("Erro ao baixar. Tente novamente.");
+            // Clear error after 3 seconds
+            setTimeout(() => setDownloadError(null), 3000);
         } finally {
             setLoading(false);
         }
@@ -141,23 +147,28 @@ export default function EngagementWidgets() {
                     </p>
                 </div>
 
-                <button
-                    onClick={downloadReport}
-                    disabled={loading}
-                    className={`w-full font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 group-hover:translate-y-[-2px] ${user?.is_premium
-                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/40'
-                        : 'bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-700'
-                        }`}
-                >
-                    {loading ? (
-                        <span className="animate-pulse">Gerando PDF...</span>
-                    ) : (
-                        <>
-                            <span>{user?.is_premium ? 'Baixar Análise PDF' : 'Desbloquear Acesso Pro'}</span>
-                            {user?.is_premium && <span className="text-lg">DOWNLOAD</span>}
-                        </>
+                <div className="space-y-2">
+                    <button
+                        onClick={user?.is_premium ? downloadReport : () => router.push('/pricing')}
+                        disabled={loading}
+                        className={`w-full font-bold py-3 rounded-lg transition-all flex items-center justify-center gap-2 group-hover:translate-y-[-2px] ${user?.is_premium
+                            ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg shadow-purple-900/40'
+                            : 'bg-gray-800 text-gray-400 cursor-not-allowed border border-gray-700'
+                            }`}
+                    >
+                        {loading ? (
+                            <span className="animate-pulse">Gerando PDF...</span>
+                        ) : (
+                            <>
+                                <span>{user?.is_premium ? 'Baixar Análise PDF' : 'Desbloquear Acesso Pro'}</span>
+                                {user?.is_premium && <span className="text-lg">DOWNLOAD</span>}
+                            </>
+                        )}
+                    </button>
+                    {downloadError && (
+                        <p className="text-center text-red-400 text-xs">{downloadError}</p>
                     )}
-                </button>
+                </div>
             </div>
         </div>
     );

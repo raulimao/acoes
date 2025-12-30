@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -179,12 +179,12 @@ export default function Dashboard() {
     setTotalStocksCount(stocks.length);
   }, [stocks, user?.is_premium]);
 
-  // Debug: Log when selectedStock changes
-  useEffect(() => {
-    console.log('selectedStock state changed:', selectedStock?.papel || 'null');
-  }, [selectedStock]);
+  // Debug: Log removed
+  // useEffect(() => {
+  //   console.log('selectedStock state changed:', selectedStock?.papel || 'null');
+  // }, [selectedStock]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       // For Anti-Ranking, we want distinct logic
@@ -233,7 +233,11 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, minScore, user, premiumFilters]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
@@ -807,9 +811,7 @@ function StockTable({ stocks, onSelect, showRank = false }: { stocks: Stock[], o
               transition={{ delay: index * 0.02 }}
               className="hover:bg-cyan-500/5 cursor-pointer transition-colors"
               onClick={(e) => {
-                e.preventDefault();
                 e.stopPropagation();
-                console.log('Row clicked, selecting stock:', stock.papel);
                 onSelect(stock);
               }}
             >
