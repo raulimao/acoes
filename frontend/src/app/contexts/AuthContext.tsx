@@ -65,7 +65,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('token', data.access_token);
             await fetchUser(data.access_token);
             return true;
-        } catch (err: any) {
+        } catch (error: unknown) {
+            const err = error as any;
             const message = err.response?.data?.detail || 'Erro ao fazer login';
             setError(message);
             return false;
@@ -79,17 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // After registration, show success message - user needs to confirm email
             setError('Conta criada! Verifique seu email para confirmar.');
             return true;
-        } catch (err: any) {
+        } catch (error: unknown) {
+            const err = error as any;
             // Handle 202 (Accepted) - email confirmation required
             if (err.response?.status === 202) {
                 setError(err.response?.data?.detail || 'Conta criada! Verifique seu email para confirmar.');
                 return true;
             }
-            
+
             // Handle Pydantic validation errors (422 - array of error objects)
             const detail = err.response?.data?.detail;
             let message = 'Erro ao criar conta';
-            
+
             if (Array.isArray(detail)) {
                 // Pydantic returns [{type, loc, msg, input, ctx}, ...]
                 const firstError = detail[0];
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } else if (typeof detail === 'string') {
                 message = detail;
             }
-            
+
             setError(message);
             return false;
         }

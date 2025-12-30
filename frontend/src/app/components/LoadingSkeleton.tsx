@@ -108,7 +108,7 @@ function SkeletonChartCard() {
                         transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
                         style={{
                             flex: 1,
-                            height: `${Math.random() * 60 + 40}%`,
+                            height: `${((i * 37) % 60) + 40}%`, // Deterministic random-like value based on index
                             borderRadius: '0.5rem 0.5rem 0 0',
                             background: 'linear-gradient(180deg, rgba(139, 92, 246, 0.3) 0%, rgba(139, 92, 246, 0.1) 100%)'
                         }}
