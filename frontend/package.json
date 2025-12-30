@@ -31,8 +31,8 @@
     "typescript": "^5"
   },
   "browserslist": [
-    ">0.2%",
-    "not dead",
+    "defaults",
+    "not IE 11",
     "not op_mini all"
   ]
 }

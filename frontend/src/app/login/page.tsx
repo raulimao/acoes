@@ -61,19 +61,7 @@ export default function LoginPage() {
         setLoading(false);
     };
 
-    // Show loading while checking auth
-    if (authLoading) {
-        return (
-            <div className="login-page">
-                <div className="login-bg" />
-                <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    style={{ width: '2rem', height: '2rem', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%' }}
-                />
-            </div>
-        );
-    }
+
 
     return (
         <div className="login-page">
