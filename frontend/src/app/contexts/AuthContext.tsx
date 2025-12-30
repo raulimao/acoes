@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { supabase } from '@/lib/supabase';
@@ -35,17 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Check for existing session on mount
-    useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            fetchUser(token);
-        } else {
-            setLoading(false);
-        }
-    }, []);
-
-    const fetchUser = async (token: string) => {
+    const fetchUser = useCallback(async (token: string) => {
         try {
             const { data } = await axios.get(`${API_URL}/auth/me`, {
                 headers: { Authorization: `Bearer ${token}` }
@@ -56,7 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    // Check for existing session on mount
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            fetchUser(token);
+        } else {
+            setLoading(false);
+        }
+    }, [fetchUser]);
 
     const login = async (email: string, password: string): Promise<boolean> => {
         setError(null);

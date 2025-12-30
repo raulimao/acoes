@@ -104,7 +104,7 @@ export default function StockComparisonModal({ stockA, stockB, onClose }: StockC
                     <p className="text-white/40">Comparativo lado a lado</p>
                 </div>
 
-                <div className="grid grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Stock A Header */}
                     <div className={`text-center p-4 rounded-xl border transition-colors ${overallWinner === 'A' ? 'bg-gradient-to-b from-green-500/20 to-transparent border-green-500/50' : 'bg-white/5 border-white/5'}`}>
                         <h3 className="text-2xl font-bold text-white mb-2">{stockA.papel}</h3>
@@ -157,7 +157,7 @@ export default function StockComparisonModal({ stockA, stockB, onClose }: StockC
                         const formattedB = metric.format ? metric.format(valB || 0) : valB;
 
                         return (
-                            <div key={metric.key} className="grid grid-cols-3 gap-6 py-3 border-b border-white/5 hover:bg-white/5 transition-colors px-4 rounded-lg">
+                            <div key={metric.key} className="grid grid-cols-3 gap-2 md:gap-6 py-3 border-b border-white/5 hover:bg-white/5 transition-colors px-2 md:px-4 rounded-lg">
                                 <div className={`text-right font-mono font-bold ${winner === 'A' ? 'text-green-400 scale-110 origin-right' : 'text-white/60'}`}>
                                     {formattedA}
                                 </div>

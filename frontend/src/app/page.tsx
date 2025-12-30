@@ -39,6 +39,12 @@ import { useRouter } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
+declare global {
+  interface Window {
+    abortController?: AbortController;
+  }
+}
+
 interface Stock {
   papel: string;
   setor?: string;
@@ -185,6 +191,13 @@ export default function Dashboard() {
   // }, [selectedStock]);
 
   const fetchData = useCallback(async () => {
+    // Cancel previous request if exists
+    if (window.abortController) {
+      window.abortController.abort();
+    }
+    const controller = new AbortController();
+    window.abortController = controller;
+
     setLoading(true);
     try {
       // For Anti-Ranking, we want distinct logic
@@ -222,16 +235,29 @@ export default function Dashboard() {
       }
 
       const [stocksRes, statsRes] = await Promise.all([
-        axios.get(endpoint),
-        axios.get(`${API_URL}/stats`)
+        axios.get(endpoint, { signal: controller.signal }),
+        axios.get(`${API_URL}/stats`, { signal: controller.signal })
       ]);
       setStocks(stocksRes.data);
       setStats(statsRes.data);
-    } catch (error) {
+    } catch (error: any) {
+      if (axios.isCancel(error)) {
+        console.log('Request canceled', error.message);
+        return;
+      }
       console.error('Error fetching data:', error);
       showNotification('error', 'Erro ao carregar dados da API');
     } finally {
-      setLoading(false);
+      // Only unset loading if this was the last request (controller matches)
+      // Actually, if canceled, we returned early, so this finally block runs still?
+      // Yes, finally runs on return. But we don't want to setLoading(false) if we just started a NEW one.
+      // But since we use a global variable on window (hacky but works for this scope) or ref...
+      // Let's rely on the fact that if it wasn't canceled, it's the latest.
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
+      // Note: "window.abortController" requires type augmentation.
+      // A better React way is a useRef, but fetchData is defined inside the component so it has access to refs.
     }
   }, [activeTab, minScore, user, premiumFilters]);
 
