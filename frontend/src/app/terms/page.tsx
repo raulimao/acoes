@@ -19,7 +19,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">1. Aceitação dos Termos</h2>
                         <p>
-                            Ao acessar e usar a plataforma NorteAcoes ("Serviço"), você concorda em cumprir estes Termos de Uso e todas as leis aplicáveis. Se você não concordar com algum destes termos, está proibido de usar ou acessar este site.
+                            Ao acessar e usar a plataforma NorteAcoes (&quot;Serviço&quot;), você concorda em cumprir estes Termos de Uso e todas as leis aplicáveis. Se você não concordar com algum destes termos, está proibido de usar ou acessar este site.
                         </p>
                     </section>
 
@@ -39,7 +39,7 @@ export default function TermsPage() {
                     <section>
                         <h2 className="text-xl font-bold text-white mb-4">3. Isenção de Responsabilidade (Disclaimer)</h2>
                         <p>
-                            Os materiais no site da NorteAcoes são fornecidos "como estão". NorteAcoes não oferece garantias, expressas ou implícitas, e, por este meio, isenta e nega todas as outras garantias, incluindo, sem limitação, garantias implícitas ou condições de comercialização, adequação a um fim específico ou não violação de propriedade intelectual.
+                            Os materiais no site da NorteAcoes são fornecidos &quot;como estão&quot;. NorteAcoes não oferece garantias, expressas ou implícitas, e, por este meio, isenta e nega todas as outras garantias, incluindo, sem limitação, garantias implícitas ou condições de comercialização, adequação a um fim específico ou não violação de propriedade intelectual.
                         </p>
                         <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mt-4">
                             <p className="text-yellow-200 text-sm">

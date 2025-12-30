@@ -21,7 +21,7 @@ interface StockCardProps {
     onToggleSelect?: (stock: Stock) => void;
 }
 
-export default function StockCard({ stock, index, isPremium, onClick, isSelected, onToggleSelect }: StockCardProps) {
+export default function StockCard({ stock, index, onClick, isSelected, onToggleSelect }: StockCardProps) {
     const getScoreColor = (score: number) => {
         if (score >= 12) return 'text-green-400 bg-green-500/20';
         if (score >= 8) return 'text-yellow-400 bg-yellow-500/20';

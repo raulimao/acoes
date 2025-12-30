@@ -84,7 +84,7 @@ export default function Top3Podium({ stocks, onSelectStock }: Top3PodiumProps) {
         }
     };
 
-    const generateInsight = (stock: Stock, place: number): string => {
+    const generateInsight = (stock: Stock): string => {
         const insights = [];
 
         if (stock.p_l && stock.p_l > 0 && stock.p_l < 10) {
@@ -181,7 +181,7 @@ export default function Top3Podium({ stocks, onSelectStock }: Top3PodiumProps) {
                                     <div className="text-center mb-4 px-2">
                                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10`}>
                                             <TrendingUp className={`w-4 h-4 ${config.textColor}`} />
-                                            <span className="text-sm text-white/80">{generateInsight(stock, place)}</span>
+                                            <span className="text-sm text-white/80">{generateInsight(stock)}</span>
                                         </div>
                                     </div>
 

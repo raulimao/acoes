@@ -10,7 +10,6 @@ import {
   Sparkles,
   Trophy,
   Zap,
-  Info,
   X,
   LogOut,
   User,
@@ -236,9 +235,9 @@ export default function Dashboard() {
       ]);
       setStocks(stocksRes.data);
       setStats(statsRes.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (axios.isCancel(error)) {
-        console.log('Request canceled', error.message);
+        console.log('Request canceled', (error as Error).message);
         return;
       }
       console.error('Error fetching data:', error);

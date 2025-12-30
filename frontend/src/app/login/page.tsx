@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login, register, loginWithGoogle, resendConfirmation, isAuthenticated, loading: authLoading, error, clearError } = useAuth();
+    const { login, register, loginWithGoogle, resendConfirmation, isAuthenticated, error, clearError } = useAuth();
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -29,12 +29,12 @@ export default function LoginPage() {
         }
     }, [isAuthenticated, router]);
 
-    // Clear error when switching modes
-    useEffect(() => {
+    const handleModeSwitch = (mode: boolean) => {
+        setIsLogin(mode);
         clearError();
         setValidationError(null);
         setSuccessMessage(null);
-    }, [isLogin]);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -168,13 +168,13 @@ export default function LoginPage() {
                     {/* Toggle Login/Register */}
                     <div className="login-toggle">
                         <button
-                            onClick={() => setIsLogin(true)}
+                            onClick={() => handleModeSwitch(true)}
                             className={`login-toggle-btn ${isLogin ? 'active' : ''}`}
                         >
                             Entrar
                         </button>
                         <button
-                            onClick={() => setIsLogin(false)}
+                            onClick={() => handleModeSwitch(false)}
                             className={`login-toggle-btn ${!isLogin ? 'active' : ''}`}
                         >
                             Cadastrar

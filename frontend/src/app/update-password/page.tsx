@@ -55,8 +55,8 @@ export default function UpdatePasswordPage() {
                 router.push('/login');
             }, 3000);
 
-        } catch (err: any) {
-            setError(err.message || 'Erro ao atualizar senha.');
+        } catch (err: unknown) {
+            setError((err as Error).message || 'Erro ao atualizar senha.');
         } finally {
             setLoading(false);
         }

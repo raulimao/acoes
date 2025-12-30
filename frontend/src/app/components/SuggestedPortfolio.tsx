@@ -74,7 +74,7 @@ export default function SuggestedPortfolio() {
                     { signal: abortController.signal }
                 );
                 setPortfolio(response.data);
-            } catch (error: any) {
+            } catch (error: unknown) {
                 if (axios.isCancel(error)) return;
                 console.error('Error fetching portfolio:', error);
                 setError('Erro ao gerar sugestão. Tente novamente.');
