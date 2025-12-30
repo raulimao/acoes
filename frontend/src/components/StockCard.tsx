@@ -44,13 +44,13 @@ export default function StockCard({ stock, index, isPremium, onClick, isSelected
                 </div>
                 <div className={`px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1 ${getScoreColor(stock.super_score || 0)}`}>
                     <Zap className="w-3 h-3" />
-                    {stock.super_score?.toFixed(1)}
+                    {stock.super_score !== undefined ? stock.super_score.toFixed(1) : '0.0'}
                 </div>
             </div>
 
             {/* Price */}
             <p className="text-xl font-bold text-white mb-3">
-                R$ {stock.cotacao?.toFixed(2)}
+                R$ {stock.cotacao !== undefined ? stock.cotacao.toFixed(2) : '--'}
             </p>
 
             {/* Key Metrics - Only 3 */}

@@ -60,9 +60,12 @@ export default function AIChat() {
         setShowSuggestions(false); // Hide suggestions after first message
 
         try {
+            const token = localStorage.getItem('token');
             const response = await axios.post(`${API_URL}/chat`, {
                 message: textToSend,
                 history: messages.slice(-6).map(m => ({ role: m.role, content: m.content }))
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
             });
 
             const assistantMessage: Message = {
