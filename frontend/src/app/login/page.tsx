@@ -329,26 +329,24 @@ export default function LoginPage() {
                         </motion.button>
 
                         {/* Resend Confirmation Link (Login Mode Only) */}
-                        {isLogin && (
-                            <div className="mt-4 text-center">
-                                <button
-                                    type="button"
-                                    onClick={async () => {
-                                        setValidationError(null);
-                                        setSuccessMessage(null);
-                                        if (!formData.email) {
-                                            setValidationError("Preencha o campo de email acima.");
-                                            return;
-                                        }
-                                        const sent = await resendConfirmation(formData.email);
-                                        if (sent) setSuccessMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
-                                    }}
-                                    className="text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4"
-                                >
-                                    Não recebeu o email de confirmação? Reenviar
-                                </button>
-                            </div>
-                        )}
+                        <div className={`mt-4 text-center ${isLogin ? '' : 'hidden'}`}>
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    setValidationError(null);
+                                    setSuccessMessage(null);
+                                    if (!formData.email) {
+                                        setValidationError("Preencha o campo de email acima.");
+                                        return;
+                                    }
+                                    const sent = await resendConfirmation(formData.email);
+                                    if (sent) setSuccessMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
+                                }}
+                                className="text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4"
+                            >
+                                Não recebeu o email de confirmação? Reenviar
+                            </button>
+                        </div>
                     </form>
 
                     {/* Divider */}
