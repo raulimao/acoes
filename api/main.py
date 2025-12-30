@@ -29,12 +29,13 @@ from utils.logging_config import logger
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
 from services.setores_service import get_all_setores
+from services.data_service import get_market_data, update_market_data_background
 
 
 from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user, resend_confirmation_email, ensure_profile_exists
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
 from services.email_service import send_welcome_email, send_payment_success_email
-from fastapi import FastAPI, HTTPException, Query, Depends, Request
+from fastapi import FastAPI, HTTPException, Query, Depends, Request, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from config.strategies_config import ESTRATEGIAS, FILTROS
 from fpdf import FPDF
@@ -120,24 +121,36 @@ async def global_exception_handler(request: Request, exc: Exception):
         "message": "Ocorreu um erro inesperado. Nossa equipe foi notificada."
     }
 
-# Cache for stock data
-_cached_data = None
-_cache_time = None
-CACHE_DURATION = 300  # 5 minutes
+# New Data Service Integration
+# This replaces the old RAM-only cache with Supabase-backed persistence
 
+@app.on_event("startup")
+async def startup_event():
+    """Load cache from DB on startup to avoid delay for first user."""
+    logger.info("app_startup_preload")
+    try:
+        # This will load from Supabase to RAM
+        get_market_data()
+    except Exception as e:
+        logger.error("startup_preload_failed", error=str(e))
 
 def get_stock_data():
-    """Get stock data with caching."""
-    global _cached_data, _cache_time
-    
-    now = datetime.now()
-    if _cached_data is not None and _cache_time is not None:
-        if (now - _cache_time).seconds < CACHE_DURATION:
-            return _cached_data
-    
-    _cached_data = carregar_dados_completos()
-    _cache_time = now
-    return _cached_data
+    """
+    Proxy to the new DataService.
+    Keeps compatibility with existing endpoints calling get_stock_data().
+    """
+    return get_market_data()
+
+
+@app.post("/api/admin/refresh-cache")
+async def force_refresh(background_tasks: BackgroundTasks, key: str = Query(None)):
+    """Force background data update."""
+    # Simple protection
+    if key != os.getenv("ADMIN_KEY", "admin123"):
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    background_tasks.add_task(update_market_data_background)
+    return {"status": "started", "message": "Scraper rodando em background..."}
 
 
 # ============================================
