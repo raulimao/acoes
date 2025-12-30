@@ -36,7 +36,7 @@ export default function AuthCallback() {
                         // Use window.location instead of router.push to force full reload
                         // This ensures AuthContext re-checks the token
                         window.location.href = '/';
-                    } catch (oauthError: any) {
+                    } catch (oauthError: unknown) {
                         console.error('OAuth sync error:', oauthError);
                         throw new Error('Erro ao sincronizar com backend');
                     }

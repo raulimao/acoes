@@ -42,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             });
             setUser(data);
         } catch (err) {
+            // Token invalid or expired
             localStorage.removeItem('token');
         } finally {
             setLoading(false);
@@ -66,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             await fetchUser(data.access_token);
             return true;
         } catch (error: unknown) {
-            const err = error as any;
+            const err = error as { response?: { data?: { detail?: string } } };
             const message = err.response?.data?.detail || 'Erro ao fazer login';
             setError(message);
             return false;
@@ -81,10 +82,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setError('Conta criada! Verifique seu email para confirmar.');
             return true;
         } catch (error: unknown) {
-            const err = error as any;
+            const err = error as { response?: { status?: number, data?: { detail?: string | any[] } } };
             // Handle 202 (Accepted) - email confirmation required
             if (err.response?.status === 202) {
-                setError(err.response?.data?.detail || 'Conta criada! Verifique seu email para confirmar.');
+                setError((typeof err.response.data?.detail === 'string' ? err.response.data.detail : '') || 'Conta criada! Verifique seu email para confirmar.');
                 return true;
             }
 

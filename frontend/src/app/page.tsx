@@ -5,8 +5,6 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import {
-  ChevronUp,
-  ChevronDown,
   Search,
   RefreshCw,
   Sparkles,
@@ -21,19 +19,15 @@ import {
   Target,
   Skull,
   Lock,
-  Eye,
-  EyeOff,
   FileText
 } from 'lucide-react';
 import AIChat from './components/AIChat';
 import SuggestedPortfolio from './components/SuggestedPortfolio';
-import EngagementWidgets from './components/EngagementWidgets';
 import StockComparisonModal from '../components/StockComparisonModal';
 import StockCard from '../components/StockCard';
 import PremiumFilters, { FilterValues } from '../components/PremiumFilters';
 import Top3Podium from '../components/Top3Podium';
 import ToxicStocks from '../components/ToxicStocks';
-import FOMOWidget from '../components/FOMOWidget';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -83,10 +77,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  const [minScore, setMinScore] = useState(5);
+  const [minScore] = useState(5);
   // Legacy Filters (keeping for compatibility)
-  const [onlyBlueChips, setOnlyBlueChips] = useState(false);
-  const [onlySmallCaps, setOnlySmallCaps] = useState(false);
+  const [onlyBlueChips] = useState(false);
+  const [onlySmallCaps] = useState(false);
 
   // New Premium Features
   const [sectors, setSectors] = useState<string[]>([]);
@@ -127,9 +121,8 @@ export default function Dashboard() {
     fetchSectors();
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [minScore, activeTab, premiumFilters]); // Re-fetch when filters change
+  // Removed redundant useEffect. fetchData dependency handles updates.
+
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -326,17 +319,6 @@ export default function Dashboard() {
     return matchesSearch && matchesFilter;
   });
 
-  const getScoreColor = (score: number) => {
-    if (score >= 12) return 'score-high';
-    if (score >= 8) return 'score-medium';
-    return 'score-low';
-  };
-
-  const getScoreTextColor = (score: number) => {
-    if (score >= 12) return 'text-green-400';
-    if (score >= 8) return 'text-yellow-400';
-    return 'text-red-400';
-  };
 
   // Kill List: Removed History, Strategies, and Onboarding for simplified MVP
 
@@ -804,74 +786,7 @@ function StatCard({
   );
 }
 
-function StockTable({ stocks, onSelect, showRank = false }: { stocks: Stock[], onSelect: (s: Stock) => void, showRank?: boolean }) {
-  const getScoreColor = (score: number) => {
-    if (score >= 12) return 'score-high';
-    if (score >= 8) return 'score-medium';
-    return 'score-low';
-  };
 
-  return (
-    <div className="dashboard-table-container">
-      <table className="dashboard-table">
-        <thead>
-          <tr>
-            {showRank && <th>#</th>}
-            <th>Ação</th>
-            <th>Setor</th>
-            <th>Cotação</th>
-            <th>P/L</th>
-            <th>P/VP</th>
-            <th>DY</th>
-            <th>ROE</th>
-            <th>Super Score</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {stocks.map((stock, index) => (
-            <motion.tr
-              key={stock.papel}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.02 }}
-              className="hover:bg-cyan-500/5 cursor-pointer transition-colors"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelect(stock);
-              }}
-            >
-              {showRank && (
-                <td>
-                  <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${index < 3 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-white/10'
-                    }`}>
-                    {index + 1}
-                  </span>
-                </td>
-              )}
-              <td className="font-bold text-white">{stock.papel}</td>
-              <td className="text-white/60">{stock.setor || 'N/A'}</td>
-              <td>R$ {stock.cotacao?.toFixed(2) || '0.00'}</td>
-              <td>{stock.p_l?.toFixed(2) || '0'}</td>
-              <td>{stock.p_vp?.toFixed(2) || '0'}</td>
-              <td>{stock.dividend_yield?.toFixed(2) || '0'}%</td>
-              <td>{stock.roe?.toFixed(2) || '0'}%</td>
-              <td>
-                <span className={`score-badge ${getScoreColor(stock.super_score || 0)}`}>
-                  <Zap className="w-4 h-4 mr-1" />
-                  {stock.super_score?.toFixed(1) || '0'}
-                </span>
-              </td>
-              <td>
-                <Info className="w-5 h-5 text-white/30 hover:text-cyan-400 transition-colors" />
-              </td>
-            </motion.tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 function StockModal({ stock, onClose, isPremium }: { stock: Stock, onClose: () => void, isPremium: boolean }) {
   const getScoreColor = (score: number) => {

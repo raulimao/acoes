@@ -75,7 +75,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
         const count = Object.values(filters).filter(v => v !== null && v !== '').length;
         setActiveFiltersCount(count);
         onFiltersChange(filters);
-    }, [filters]);
+    }, [filters, onFiltersChange]);
 
     const updateFilter = (key: keyof FilterValues, value: any) => {
         if (!isPremium) {

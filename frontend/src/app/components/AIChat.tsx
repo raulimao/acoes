@@ -75,7 +75,7 @@ export default function AIChat() {
             };
 
             setMessages(prev => [...prev, assistantMessage]);
-        } catch (error) {
+        } catch {
             // Fallback response if API fails
             const fallbackMessage: Message = {
                 role: 'assistant',
