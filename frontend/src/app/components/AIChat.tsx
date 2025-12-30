@@ -146,22 +146,15 @@ export default function AIChat() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 100, scale: 0.95 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="fixed bottom-24 right-6 w-96 max-w-[calc(100vw-2rem)] flex flex-col z-50"
                         style={{
-                            position: 'fixed',
-                            bottom: '2rem',
-                            right: '2rem',
-                            width: '24rem',
-                            height: '32rem',
                             maxHeight: 'calc(100vh - 4rem)',
                             background: 'rgba(15, 23, 42, 0.95)',
                             backdropFilter: 'blur(20px)',
                             border: '1px solid rgba(255, 255, 255, 0.1)',
                             borderRadius: '1.5rem',
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            overflow: 'hidden',
-                            zIndex: 60
+                            overflow: 'hidden'
                         }}
                     >
                         {/* Header */}
@@ -379,18 +372,9 @@ export default function AIChat() {
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
-                                placeholder="Pergunte sobre ações..."
+                                placeholder="Digite sua mensagem..."
+                                autoFocus
                                 disabled={loading}
-                                style={{
-                                    flex: 1,
-                                    padding: '0.75rem 1rem',
-                                    borderRadius: '0.75rem',
-                                    background: 'rgba(255, 255, 255, 0.05)',
-                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                    color: 'white',
-                                    fontSize: '0.875rem',
-                                    outline: 'none'
-                                }}
                             />
                             <motion.button
                                 type="submit"
@@ -419,7 +403,7 @@ export default function AIChat() {
                         </form>
                     </motion.div>
                 )}
-            </AnimatePresence>
+            </AnimatePresence >
         </>
     );
 }

@@ -55,24 +55,43 @@ export default function SuggestedPortfolio() {
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
 
-    const fetchPortfolio = async (profile: string) => {
-        setLoading(true);
-        try {
-            const response = await axios.post(`${API_URL}/portfolio/suggested`, {
-                profile
-            });
-            setPortfolio(response.data);
-        } catch (error) {
-            console.error('Error fetching portfolio:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        let abortController: AbortController | null = null;
+
+        const fetchPortfolio = async () => {
+            if (abortController) abortController.abort();
+            abortController = new AbortController();
+
+            setLoading(true);
+            setError(null);
+
+            try {
+                const response = await axios.post(
+                    `${API_URL}/portfolio/suggested`,
+                    { profile: selectedProfile },
+                    { signal: abortController.signal }
+                );
+                setPortfolio(response.data);
+            } catch (error: any) {
+                if (axios.isCancel(error)) return;
+                console.error('Error fetching portfolio:', error);
+                setError('Erro ao gerar sugestão. Tente novamente.');
+            } finally {
+                if (abortController && !abortController.signal.aborted) {
+                    setLoading(false);
+                }
+            }
+        };
+
         if (isOpen) {
-            fetchPortfolio(selectedProfile);
+            fetchPortfolio();
         }
+
+        return () => {
+            if (abortController) abortController.abort();
+        };
     }, [selectedProfile, isOpen]);
 
     const formatCurrency = (value: number) => {
@@ -331,6 +350,11 @@ export default function SuggestedPortfolio() {
                                             ⚠️ {portfolio.disclaimer}
                                         </p>
                                     </>
+                                ) : error ? (
+                                    <div style={{ textAlign: 'center', padding: '3rem', color: '#ff6b6b' }}>
+                                        <p style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</p>
+                                        <p>{error}</p>
+                                    </div>
                                 ) : null}
                             </div>
                         </motion.div>

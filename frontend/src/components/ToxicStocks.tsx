@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
     Skull,
@@ -165,11 +165,11 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
         };
     };
 
-    // Pre-analyze all stocks
-    const analyzedStocks = stocks.map(stock => ({
+    // Pre-analyze all stocks (Memoized)
+    const analyzedStocks = useMemo(() => stocks.map(stock => ({
         stock,
         analysis: analyzeToxicity(stock)
-    }));
+    })), [stocks]);
 
     // Apply filter
     const filteredStocks = analyzedStocks.filter(({ analysis }) => {
