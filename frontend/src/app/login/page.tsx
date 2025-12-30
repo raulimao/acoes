@@ -329,7 +329,11 @@ export default function LoginPage() {
                         </motion.button>
 
                         {/* Resend Confirmation Link (Login Mode Only) */}
-                        <div className={`mt-4 text-center ${isLogin ? '' : 'hidden'}`}>
+                        {/* Resend Confirmation Link (Always rendered for LCP) */}
+                        <div
+                            className={`mt-4 text-center transition-opacity duration-300 ${isLogin ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
+                            aria-hidden={!isLogin}
+                        >
                             <button
                                 type="button"
                                 onClick={async () => {
@@ -343,6 +347,7 @@ export default function LoginPage() {
                                     if (sent) setSuccessMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
                                 }}
                                 className="text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4"
+                                tabIndex={isLogin ? 0 : -1}
                             >
                                 Não recebeu o email de confirmação? Reenviar
                             </button>

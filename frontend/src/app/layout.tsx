@@ -35,11 +35,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
         <link rel="preconnect" href="https://acoes.onrender.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://acoes.onrender.com" />
-      </head>
-      <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>
