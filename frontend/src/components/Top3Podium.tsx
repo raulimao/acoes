@@ -110,22 +110,7 @@ export default function Top3Podium({ stocks, onSelectStock }: Top3PodiumProps) {
         return insights[0];
     };
 
-    const ScoreBar = ({ label, value, max, color }: { label: string; value: number; max: number; color: string }) => (
-        <div className="space-y-1">
-            <div className="flex justify-between text-xs">
-                <span className="text-white/50">{label}</span>
-                <span className="text-white/70 font-medium">{value.toFixed(1)}</span>
-            </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                    className={`h-full rounded-full ${color}`}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(value / max) * 100}%` }}
-                    transition={{ duration: 0.8, delay: 0.3 }}
-                />
-            </div>
-        </div>
-    );
+
 
     return (
         <div className="mb-8">
@@ -262,3 +247,20 @@ export default function Top3Podium({ stocks, onSelectStock }: Top3PodiumProps) {
         </div>
     );
 }
+
+const ScoreBar = ({ label, value, max, color }: { label: string; value: number; max: number; color: string }) => (
+    <div className="space-y-1">
+        <div className="flex justify-between text-xs">
+            <span className="text-white/50">{label}</span>
+            <span className="text-white/70 font-medium">{value.toFixed(1)}</span>
+        </div>
+        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <motion.div
+                className={`h-full rounded-full ${color}`}
+                initial={{ width: 0 }}
+                animate={{ width: `${(value / max) * 100}%` }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+            />
+        </div>
+    </div>
+);

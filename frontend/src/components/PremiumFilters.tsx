@@ -89,26 +89,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
         setFilters(defaultFilters);
     };
 
-    const FilterLock = ({ children, label }: { children: React.ReactNode; label: string }) => {
-        if (isPremium) return <>{children}</>;
 
-        return (
-            <div className="relative group">
-                <div className="opacity-50 pointer-events-none blur-[1px]">
-                    {children}
-                </div>
-                <div
-                    className="absolute inset-0 flex items-center justify-center cursor-pointer"
-                    onClick={onUpgradeClick}
-                >
-                    <div className="bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Lock className="w-3 h-3 text-yellow-400" />
-                        <span className="text-xs text-yellow-400 font-medium">Premium</span>
-                    </div>
-                </div>
-            </div>
-        );
-    };
 
     return (
         <motion.div
@@ -205,7 +186,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <Building2 className="w-3 h-3" />
                                         Setor
                                     </label>
-                                    <FilterLock label="Setor">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Setor">
                                         <select
                                             value={filters.setor || ''}
                                             onChange={(e) => updateFilter('setor', e.target.value)}
@@ -225,7 +206,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <Target className="w-3 h-3" />
                                         Tipo de Empresa
                                     </label>
-                                    <FilterLock label="Tipo">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Tipo">
                                         <select
                                             value={filters.companyType || ''}
                                             onChange={(e) => updateFilter('companyType', e.target.value)}
@@ -245,7 +226,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <BarChart3 className="w-3 h-3" />
                                         P/L (Preço/Lucro)
                                     </label>
-                                    <FilterLock label="P/L">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="P/L">
                                         <div className="flex gap-2">
                                             <input
                                                 type="number"
@@ -271,7 +252,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <BarChart3 className="w-3 h-3" />
                                         P/VP (Preço/Valor)
                                     </label>
-                                    <FilterLock label="P/VP">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="P/VP">
                                         <div className="flex gap-2">
                                             <input
                                                 type="number"
@@ -299,7 +280,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <DollarSign className="w-3 h-3" />
                                         Dividend Yield Mínimo
                                     </label>
-                                    <FilterLock label="DY">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="DY">
                                         <div className="relative">
                                             <input
                                                 type="number"
@@ -320,7 +301,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <TrendingUp className="w-3 h-3" />
                                         ROE Mínimo
                                     </label>
-                                    <FilterLock label="ROE">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="ROE">
                                         <div className="relative">
                                             <input
                                                 type="number"
@@ -340,7 +321,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <Activity className="w-3 h-3" />
                                         ROIC Mínimo
                                     </label>
-                                    <FilterLock label="ROIC">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="ROIC">
                                         <div className="relative">
                                             <input
                                                 type="number"
@@ -360,7 +341,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                         <Percent className="w-3 h-3" />
                                         Margem Líquida Mínima
                                     </label>
-                                    <FilterLock label="Margem">
+                                    <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Margem">
                                         <div className="relative">
                                             <input
                                                 type="number"
@@ -385,7 +366,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                     {/* Graham */}
                                     <div className="space-y-2">
                                         <label className="text-xs text-white/50">Score Graham</label>
-                                        <FilterLock label="Graham">
+                                        <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Graham">
                                             <input
                                                 type="number"
                                                 placeholder="Min"
@@ -401,7 +382,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                     {/* Greenblatt */}
                                     <div className="space-y-2">
                                         <label className="text-xs text-white/50">Score Greenblatt</label>
-                                        <FilterLock label="Greenblatt">
+                                        <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Greenblatt">
                                             <input
                                                 type="number"
                                                 placeholder="Min"
@@ -417,7 +398,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                     {/* Bazin */}
                                     <div className="space-y-2">
                                         <label className="text-xs text-white/50">Score Bazin</label>
-                                        <FilterLock label="Bazin">
+                                        <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Bazin">
                                             <input
                                                 type="number"
                                                 placeholder="Min"
@@ -433,7 +414,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                     {/* Qualidade */}
                                     <div className="space-y-2">
                                         <label className="text-xs text-white/50">Score Qualidade</label>
-                                        <FilterLock label="Qualidade">
+                                        <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Qualidade">
                                             <input
                                                 type="number"
                                                 placeholder="Min"
@@ -454,7 +435,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                     {/* Liquidez */}
                                     <div className="space-y-2">
                                         <label className="text-xs text-white/50">Liquidez Mínima</label>
-                                        <FilterLock label="Liquidez">
+                                        <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Liquidez">
                                             <select
                                                 value={filters.minLiquidity || ''}
                                                 onChange={(e) => updateFilter('minLiquidity', parseFloat(e.target.value))}
@@ -472,7 +453,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                     {/* Crescimento */}
                                     <div className="space-y-2">
                                         <label className="text-xs text-white/50">Crescimento Receita 5a</label>
-                                        <FilterLock label="Crescimento">
+                                        <FilterLock isPremium={isPremium} onUpgradeClick={onUpgradeClick} label="Crescimento">
                                             <div className="relative">
                                                 <input
                                                     type="number"
@@ -494,3 +475,24 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
         </motion.div>
     );
 }
+
+function FilterLock({ children, label, isPremium, onUpgradeClick }: { children: React.ReactNode; label: string; isPremium: boolean; onUpgradeClick: () => void }) {
+    if (isPremium) return <>{children}</>;
+
+    return (
+        <div className="relative group">
+            <div className="opacity-50 pointer-events-none blur-[1px]">
+                {children}
+            </div>
+            <div
+                className="absolute inset-0 flex items-center justify-center cursor-pointer"
+                onClick={onUpgradeClick}
+            >
+                <div className="bg-slate-800/90 backdrop-blur-sm rounded-lg px-3 py-1 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Lock className="w-3 h-3 text-yellow-400" />
+                    <span className="text-xs text-yellow-400 font-medium">Premium</span>
+                </div>
+            </div>
+        </div>
+    );
+};
