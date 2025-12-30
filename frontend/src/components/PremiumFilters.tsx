@@ -285,6 +285,7 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                             <input
                                                 type="number"
                                                 placeholder="Ex: 6"
+                                                min="0"
                                                 step="0.5"
                                                 value={filters.minDy || ''}
                                                 onChange={(e) => updateFilter('minDy', parseFloat(e.target.value))}

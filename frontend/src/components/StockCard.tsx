@@ -39,7 +39,7 @@ export default function StockCard({ stock, index, isPremium, onClick, isSelected
             {/* Header: Name + Score */}
             <div className="flex justify-between items-start mb-3">
                 <div>
-                    <h3 className="text-lg font-bold text-white">{stock.papel}</h3>
+                    <h3 className="text-lg font-bold text-white truncate">{stock.papel}</h3>
                     <p className="text-xs text-white/40">{stock.setor?.slice(0, 20) || 'N/A'}</p>
                 </div>
                 <div className={`px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1 ${getScoreColor(stock.super_score || 0)}`}>
