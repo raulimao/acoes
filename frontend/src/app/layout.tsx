@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+
+const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700", "800", "900"], variable: "--font-inter" });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-space-grotesk" });
 
 export const metadata: Metadata = {
   title: "NorteAcoes | Dashboard Fundamentalista",
@@ -31,7 +35,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className="antialiased" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://acoes.onrender.com" />
+      </head>
+      <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>

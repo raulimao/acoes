@@ -21,13 +21,16 @@ import {
   Lock,
   FileText
 } from 'lucide-react';
-import AIChat from './components/AIChat';
-import SuggestedPortfolio from './components/SuggestedPortfolio';
-import StockComparisonModal from '../components/StockComparisonModal';
+import dynamic from 'next/dynamic';
+
+const AIChat = dynamic(() => import('./components/AIChat'), { ssr: false });
+const SuggestedPortfolio = dynamic(() => import('./components/SuggestedPortfolio'), { ssr: false });
+const StockComparisonModal = dynamic(() => import('../components/StockComparisonModal'), { ssr: false });
+const ToxicStocks = dynamic(() => import('../components/ToxicStocks'), { ssr: false });
+// Keeping StockCard, PremiumFilters, Top3Podium as static imports for LCP optimization (above fold/critical)
 import StockCard from '../components/StockCard';
 import PremiumFilters, { FilterValues } from '../components/PremiumFilters';
 import Top3Podium from '../components/Top3Podium';
-import ToxicStocks from '../components/ToxicStocks';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
