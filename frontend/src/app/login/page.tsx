@@ -332,6 +332,7 @@ export default function LoginPage() {
                         {/* Resend Confirmation Link (Always rendered for LCP) */}
                         <div
                             className={`mt-4 text-center transition-opacity duration-300 ${isLogin ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
+                            style={{ opacity: isLogin ? 1 : 0, visibility: isLogin ? 'visible' : 'hidden' }}
                             aria-hidden={!isLogin}
                         >
                             <button

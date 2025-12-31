@@ -25,18 +25,19 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-  },
-  other: {
-    'preconnect': 'https://acoes.onrender.com',
-    'dns-prefetch': 'https://acoes.onrender.com',
-  },
+  }
 };
+
+import ReactDOM from 'react-dom';
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Manual preconnect injection for immediate effect
+  ReactDOM.preload('https://acoes.onrender.com', { as: 'fetch', crossOrigin: 'anonymous' });
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
