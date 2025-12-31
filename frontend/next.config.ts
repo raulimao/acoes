@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  /* webpack: (config, { isServer }) => {
+    if (!isServer) {
+        config.resolve.alias['core-js'] = false;
+    }
+    return config;
+  }, */
 };
 
 export default nextConfig;

@@ -25,7 +25,11 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
-  }
+  },
+  other: {
+    'preconnect': 'https://acoes.onrender.com',
+    'dns-prefetch': 'https://acoes.onrender.com',
+  },
 };
 
 export default function RootLayout({
@@ -35,10 +39,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://acoes.onrender.com" crossOrigin="anonymous" />
-        <link rel="dns-prefetch" href="https://acoes.onrender.com" />
-      </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
         <Providers>
           {children}
