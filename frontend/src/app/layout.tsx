@@ -3,8 +3,8 @@ import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700", "800", "900"], variable: "--font-inter" });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-space-grotesk" });
+const inter = Inter({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700", "800", "900"], variable: "--font-inter", display: 'swap' });
+const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "500", "600", "700"], variable: "--font-space-grotesk", display: 'swap' });
 
 export const metadata: Metadata = {
   title: "NorteAcoes | Dashboard Fundamentalista",
@@ -28,7 +28,6 @@ export const metadata: Metadata = {
   }
 };
 
-import Preloader from "@/components/Preloader"; // Import path might need adjustment based on file structure
 import ReactDOM from 'react-dom';
 
 export default function RootLayout({
@@ -36,10 +35,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  ReactDOM.preconnect('https://acoes.onrender.com', { crossOrigin: 'anonymous' });
+
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
-        <Preloader />
         <Providers>
           {children}
         </Providers>
