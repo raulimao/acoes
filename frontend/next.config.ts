@@ -1,18 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  compiler: {
-    removeConsole: process.env.NODE_ENV === "production",
-  },
+  transpilePackages: [
+    'lucide-react',
+    'recharts',
+    'framer-motion',
+    'clsx',
+    'tailwind-merge'
+  ],
   experimental: {
-    optimizeCss: {
-      pruneSource: false,
-      inlineFonts: false,
-    },
-    optimizePackageImports: ['lucide-react', 'recharts', 'framer-motion'],
+    optimizeCss: true,
     scrollRestoration: true,
   },
-  transpilePackages: ['lucide-react', 'recharts', 'framer-motion', 'react-day-picker'],
 };
 
 export default nextConfig;
