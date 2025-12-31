@@ -330,8 +330,7 @@ export default function LoginPage() {
 
                         {/* Resend Confirmation Link (Login Mode Only) */}
                         {/* Resend Confirmation Link (Always rendered for LCP) */}
-                        {/* Resend Confirmation Link (Always rendered for LCP) */}
-                        <div className="relative mt-4 text-center" style={{ contentVisibility: 'auto', containIntrinsicSize: '50px' }}>
+                        <div className="relative mt-4 text-center" style={{ contentVisibility: 'visible', containIntrinsicSize: 'auto' }}>
                             <button
                                 type="button"
                                 onClick={async () => {

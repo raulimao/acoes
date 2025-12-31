@@ -35,10 +35,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  ReactDOM.preconnect('https://acoes.onrender.com', { crossOrigin: 'anonymous' });
 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
+      <head>
+        <link rel="dns-prefetch" href="https://acoes.onrender.com" />
+        <link rel="preconnect" href="https://acoes.onrender.com" crossOrigin="anonymous" />
+      </head>
       <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
         <Providers>
           {children}
