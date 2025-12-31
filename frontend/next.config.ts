@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     removeConsole: process.env.NODE_ENV === "production",
   },
   experimental: {
+    optimizeCss: true,
     scrollRestoration: true,
   },
   transpilePackages: ['lucide-react', 'recharts', 'framer-motion', 'react-day-picker'],
@@ -15,7 +16,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Link',
-            value: '<https://acoes.onrender.com>; rel=preconnect',
+            value: '<https://acoes.onrender.com>; rel=preconnect; crossorigin; as=fetch',
           },
         ],
       },
