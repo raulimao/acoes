@@ -28,6 +28,7 @@ export const metadata: Metadata = {
   }
 };
 
+import Preloader from "@/components/Preloader"; // Import path might need adjustment based on file structure
 import ReactDOM from 'react-dom';
 
 export default function RootLayout({
@@ -35,12 +36,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Manual preconnect injection for immediate effect
-  ReactDOM.preload('https://acoes.onrender.com', { as: 'fetch', crossOrigin: 'anonymous' });
-
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${inter.variable} ${spaceGrotesk.variable} antialiased`} suppressHydrationWarning>
+        <Preloader />
         <Providers>
           {children}
         </Providers>
