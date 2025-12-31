@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: 'Link',
-            value: '<https://acoes.onrender.com>; rel=preconnect; crossorigin=anonymous',
+            value: '<https://acoes.onrender.com>; rel=preconnect',
           },
         ],
       },

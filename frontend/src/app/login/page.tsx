@@ -330,11 +330,8 @@ export default function LoginPage() {
 
                         {/* Resend Confirmation Link (Login Mode Only) */}
                         {/* Resend Confirmation Link (Always rendered for LCP) */}
-                        <div
-                            className={`mt-4 text-center transition-opacity duration-300 ${isLogin ? 'opacity-100' : 'opacity-0 pointer-events-none absolute'}`}
-                            style={{ display: isLogin ? 'block' : 'none', opacity: isLogin ? 1 : 0, visibility: isLogin ? 'visible' : 'hidden' }}
-                            aria-hidden={!isLogin}
-                        >
+                        {/* Resend Confirmation Link (Always rendered for LCP) */}
+                        <div className="relative mt-4 text-center">
                             <button
                                 type="button"
                                 onClick={async () => {
@@ -347,7 +344,8 @@ export default function LoginPage() {
                                     const sent = await resendConfirmation(formData.email);
                                     if (sent) setSuccessMessage("Email de confirmação reenviado! Verifique sua caixa de entrada.");
                                 }}
-                                className="text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4"
+                                className={`text-xs text-gray-500 hover:text-purple-400 transition-colors underline decoration-dotted underline-offset-4 ${!isLogin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                disabled={loading || !isLogin}
                                 tabIndex={isLogin ? 0 : -1}
                             >
                                 Não recebeu o email de confirmação? Reenviar
