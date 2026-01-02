@@ -51,7 +51,7 @@ interface Config {
     filter_settings: FilterSettings;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://acoes.onrender.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://acoes.onrender.com/api';
 
 export default function AdminPage() {
     const [config, setConfig] = useState<Config | null>(null);
@@ -72,7 +72,7 @@ export default function AdminPage() {
                 return;
             }
 
-            const response = await fetch(`${API_URL}/api/admin/config`, {
+            const response = await fetch(`${API_URL}/admin/config`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -110,7 +110,7 @@ export default function AdminPage() {
 
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`${API_URL}/api/admin/config`, {
+            const response = await fetch(`${API_URL}/admin/config`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

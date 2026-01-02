@@ -129,7 +129,7 @@ export default function Top3Podium({ stocks, onSelectStock }: Top3PodiumProps) {
             </div>
 
             {/* Podium */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end max-w-5xl mx-auto">
+            <div className="flex flex-col md:flex-row items-end justify-center gap-4 max-w-4xl mx-auto px-4">
                 {podiumOrder.map((stock, displayIndex) => {
                     const place = getPlacement(displayIndex);
                     const config = getMedalConfig(place);
@@ -138,7 +138,7 @@ export default function Top3Podium({ stocks, onSelectStock }: Top3PodiumProps) {
                     return (
                         <motion.div
                             key={stock.papel}
-                            className={`relative ${displayIndex === 1 ? 'md:order-2' : displayIndex === 0 ? 'md:order-1' : 'md:order-3'}`}
+                            className="w-full md:w-[280px] flex-shrink-0"
                             initial={{ opacity: 0, y: 50 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: displayIndex * 0.15, type: 'spring' }}
