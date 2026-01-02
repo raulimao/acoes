@@ -26,9 +26,13 @@ const AIChat = dynamic(() => import('./components/AIChat'), { ssr: false });
 const SuggestedPortfolio = dynamic(() => import('./components/SuggestedPortfolio'), { ssr: false });
 const StockComparisonModal = dynamic(() => import('../components/StockComparisonModal'), { ssr: false });
 const ToxicStocks = dynamic(() => import('../components/ToxicStocks'), { ssr: false });
-// Keeping StockCard, PremiumFilters, Top3Podium as static imports for LCP optimization (above fold/critical)
+// Keeping StockCard, Top3Podium as static imports for LCP optimization (above fold/critical)
 import StockCard from '../components/StockCard';
-import PremiumFilters, { FilterValues } from '../components/PremiumFilters';
+const PremiumFilters = dynamic(() => import('../components/PremiumFilters'), {
+  loading: () => <div className="w-full h-32 bg-slate-900/50 border border-slate-800 rounded-xl mb-8 animate-pulse" />,
+  ssr: false
+});
+import type { FilterValues } from '../components/PremiumFilters';
 import Top3Podium from '../components/Top3Podium';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
