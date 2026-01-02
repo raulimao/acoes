@@ -1,8 +1,9 @@
-# 📊 Fundamentus Dashboard
+# 📊 NorteAcoes - Dashboard de Ações
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python)
+![Python](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
-![Streamlit](https://img.shields.io/badge/Streamlit-Cloud-orange?logo=streamlit)
+![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688?logo=fastapi)
 ![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase)
 
 Dashboard para análise de ações da B3 com base em indicadores fundamentalistas do [Fundamentus](https://www.fundamentus.com.br/).
@@ -15,29 +16,30 @@ Dashboard para análise de ações da B3 com base em indicadores fundamentalista
 - ✅ Filtros por **Setor/Subsetor**
 - ✅ **Histórico** de ações qualificadas (Supabase)
 - ✅ Chat AI (Groq) para consultas sobre ações
-- ✅ Comparação de ativos com gráfico radar
+- ✅ Sistema de **Premium** com Stripe
+- ✅ Autenticação com Supabase Auth
 
 ## 🏗️ Estrutura do Projeto
 
 ```
 acoes/
-├── app/                    # Interface Streamlit
-│   └── main.py             # Aplicação principal
+├── api/                    # Backend FastAPI
+│   ├── main.py             # API principal
+│   └── services/           # Serviços (auth, payment, etc)
+├── frontend/               # Frontend Next.js
+│   └── src/                # Código fonte React
 ├── core/                   # Lógica de negócio
 │   ├── fundamentus/        # Scraper e cleaner
 │   ├── scoring/            # Sistema de pontuação
 │   └── pipeline.py         # Pipeline de dados
-├── services/               # Serviços externos
-│   ├── ai_chat.py          # Chat Groq AI
-│   ├── auth_service.py     # Autenticação
-│   ├── history_service.py  # Histórico (Supabase)
-│   └── supabase_client.py  # Cliente Supabase
 ├── config/                 # Configurações
 │   ├── settings.py         # Constantes
 │   └── strategies_config.py # Estratégias e filtros
+├── scripts/                # Scripts de manutenção
+│   ├── refresh_data.py     # Atualizar dados manualmente
+│   └── seed_config.py      # Popular config no Supabase
 ├── .env                    # Variáveis de ambiente
-├── config.yaml             # Config autenticação
-└── requirements.txt        # Dependências
+└── requirements.txt        # Dependências Python
 ```
 
 ## 🚀 Como usar
@@ -48,29 +50,42 @@ git clone https://github.com/raulimao/acoes.git
 cd acoes
 ```
 
-### 2. Crie e ative o ambiente virtual
+### 2. Backend (API FastAPI)
 ```bash
 python -m venv venv
 .\venv\Scripts\activate  # Windows
 source venv/bin/activate  # Linux/Mac
-```
 
-### 3. Instale as dependências
-```bash
 pip install -r requirements.txt
+uvicorn api.main:app --reload
 ```
+A API roda em `http://localhost:8000`
+
+### 3. Frontend (Next.js)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+O frontend roda em `http://localhost:3000`
 
 ### 4. Configure as variáveis de ambiente
 Crie um arquivo `.env` com:
 ```env
-GROQ_API_KEY="sua_chave_groq"
+# Supabase
 SUPABASE_URL="https://seu-projeto.supabase.co"
 SUPABASE_KEY="sua_chave_supabase"
-```
+SUPABASE_SERVICE_KEY="sua_service_key"
 
-### 5. Execute o dashboard
-```bash
-streamlit run app/main.py
+# AI
+GROQ_API_KEY="sua_chave_groq"
+
+# Pagamentos
+STRIPE_SECRET_KEY="sk_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# JWT
+JWT_SECRET_KEY="sua_chave_secreta"
 ```
 
 ## 📈 Estratégias de Investimento
