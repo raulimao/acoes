@@ -199,10 +199,17 @@ def _create_top_stocks_page(pdf, df):
     top10 = df.nlargest(10, 'super_score')
     
     # Columns
-    columns = ['RANK', 'ATIVO', 'SETOR', 'PREÇO', 'P/L', 'DY', 'ROE', 'SUPER SCORE']
+    columns = ['RANK', 'ATIVO', 'SETOR', 'PREÇO', 'P/L', 'DY', 'ROE', 'SUPER SCORE', 'ALERTA']
     
     data = []
     for i, row in enumerate(top10.itertuples(), 1):
+        # Determine Alert Symbol
+        flags = getattr(row, 'red_flags', [])
+        alert = ""
+        if 'LOW_LIQ' in flags: alert += " [!LIQ]"
+        if 'DIV_TRAP' in flags: alert += " [!DIV]"
+        if 'HIGH_DEBT' in flags: alert += " [!DIVIDA]"
+        
         data.append([
             f"#{i}",
             row.papel,
@@ -211,7 +218,8 @@ def _create_top_stocks_page(pdf, df):
             f"{row.p_l:.1f}x",
             f"{row.dividend_yield:.1f}%",
             f"{row.roe:.1f}%",
-            f"{row.super_score:.1f}"
+            f"{row.super_score:.1f}",
+            alert
         ])
     
     # Table Styling
@@ -239,9 +247,13 @@ def _create_top_stocks_page(pdf, df):
             cell.set_facecolor(COLORS['card'] if is_odd else COLORS['bg'])
             cell.set_text_props(color=COLORS['text'])
             
-            # Highlight Score (Last Column)
+            # Highlight Score (Last Column - 1)
             if col == 7:
                 cell.set_text_props(color=COLORS['primary'], weight='bold', fontsize=12)
+                
+            # Highlight Alert (Last Column)
+            if col == 8:
+                cell.set_text_props(color=COLORS['danger'], weight='bold', fontsize=9)
             
             # Highlight Ticker (Col 1)
             if col == 1:

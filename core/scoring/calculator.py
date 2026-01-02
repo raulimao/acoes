@@ -9,6 +9,32 @@ from typing import Dict, List
 from config.strategies_config import FILTROS, ESTRATEGIAS
 
 
+def check_red_flags(row: pd.Series) -> List[str]:
+    """Identifies potential risks in the asset."""
+    flags = []
+    
+    # 1. Dividend Trap (Too high)
+    dy = row.get('dividend_yield', 0)
+    if dy > 0.15: # > 15%
+        flags.append('DIV_TRAP')
+        
+    # 2. Margin Collapse (Too low)
+    margem = row.get('margem_liquida', 0)
+    if 0 < margem < 0.03: # < 3%
+        flags.append('LOW_MARGIN')
+        
+    # 3. High Debt
+    div_pat = row.get('div_bruta_patrimonio', 0)
+    if div_pat > 3.0:
+        flags.append('HIGH_DEBT')
+        
+    # 4. Low Liquidity
+    liq = row.get('liquidez_2meses', 0)
+    if liq < 500_000:
+        flags.append('LOW_LIQ')
+        
+    return flags
+
 def calcular_score_filtro(valor: float, filtro: dict) -> float:
     """
     Calculate gradual score for a single filter.
@@ -108,9 +134,14 @@ def aplicar_scoring_completo(df: pd.DataFrame) -> pd.DataFrame:
     for nome in ESTRATEGIAS.keys():
         df[f'score_{nome}'] = 0.0
     df['super_score'] = 0.0
+    df['red_flags'] = [[] for _ in range(len(df))] # Initialize list column
     
     # Calculate scores for each row
     for idx, row in df.iterrows():
+        # Check Red Flags
+        flags = check_red_flags(row)
+        df.at[idx, 'red_flags'] = flags
+        
         # Calculate individual filter scores
         scores_filtros = calcular_scores_filtros(row)
         
@@ -121,7 +152,13 @@ def aplicar_scoring_completo(df: pd.DataFrame) -> pd.DataFrame:
             df.at[idx, f'score_{nome}'] = round(scores_estrategias[nome], 2)
         
         # Calculate Super Score
-        df.at[idx, 'super_score'] = calcular_super_score(scores_estrategias)
+        super_score = calcular_super_score(scores_estrategias)
+        
+        # Apply Liquidity Penalty (Kill Switch)
+        if 'LOW_LIQ' in flags:
+            super_score = min(super_score, 50.0)
+            
+        df.at[idx, 'super_score'] = super_score
     
     return df
 
