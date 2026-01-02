@@ -117,7 +117,7 @@ export default function Dashboard() {
         const res = await axios.get(`${API_URL}/sectors`);
         setSectors(res.data);
       } catch (error) {
-        console.error('Error fetching sectors:', error);
+        console.warn('Failed to fetch sectors (using defaults)');
       }
     };
     fetchSectors();
@@ -240,8 +240,8 @@ export default function Dashboard() {
         console.log('Request canceled', (error as Error).message);
         return;
       }
-      console.error('Error fetching data:', error);
-      showNotification('error', 'Erro ao carregar dados da API');
+      console.warn('Error fetching stock data (network or server issue)');
+      showNotification('error', 'Erro ao carregar dados. Verifique sua conexão.');
     } finally {
       // Only unset loading if this was the last request (controller matches)
       // Actually, if canceled, we returned early, so this finally block runs still?

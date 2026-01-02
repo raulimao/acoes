@@ -33,8 +33,10 @@
   },
   "browserslist": {
     "production": [
-      "defaults",
-      "not IE 11",
+      "last 2 chrome version",
+      "last 2 firefox version",
+      "last 2 safari version",
+      "not dead",
       "not op_mini all"
     ],
     "development": [
