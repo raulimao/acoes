@@ -166,6 +166,40 @@ def filtrar_liquidez(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def deduplicar_classes(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove duplicate stock classes (e.g., SOND3, SOND5, SOND6).
+    Keeps only the most liquid ticker for each company.
+    
+    Logic:
+    - Extract base ticker (first 4 chars: SOND from SOND3)
+    - Group by base ticker
+    - Keep only the row with highest liquidez_2meses
+    
+    Args:
+        df: DataFrame with stock data
+        
+    Returns:
+        DataFrame with unique companies (most liquid class only)
+    """
+    if 'papel' not in df.columns or 'liquidez_2meses' not in df.columns:
+        return df
+    
+    # Extract base ticker (first 4 characters)
+    df['base_ticker'] = df['papel'].str[:4]
+    
+    # Sort by liquidity descending, then keep first (most liquid)
+    df = df.sort_values('liquidez_2meses', ascending=False)
+    df = df.drop_duplicates(subset='base_ticker', keep='first')
+    
+    # Remove helper column
+    df = df.drop(columns=['base_ticker'])
+    
+    print(f"🔄 Deduplicação: {len(df)} ativos únicos após remover classes duplicadas")
+    
+    return df
+
+
 def processar_dados(df: pd.DataFrame) -> pd.DataFrame:
     """
     Full data processing pipeline.
@@ -181,5 +215,6 @@ def processar_dados(df: pd.DataFrame) -> pd.DataFrame:
     df = corrigir_p_ativo_e_psr(df)
     df = corrigir_cotacoes(df)
     df = filtrar_liquidez(df)
+    df = deduplicar_classes(df)  # NEW: Remove duplicate stock classes
     
     return df
