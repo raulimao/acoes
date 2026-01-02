@@ -103,25 +103,43 @@ def generate_pdf_report(df: pd.DataFrame) -> bytes:
         fig.text(0.5, 0.95, 'TOP 10 OPORTUNIDADES', fontsize=24, fontweight='bold', 
                  color=COLORS['primary'], ha='center')
                  
-        ax_table = fig.add_axes([0.1, 0.55, 0.8, 0.35])
+        ax_table = fig.add_axes([0.05, 0.55, 0.9, 0.35]) # Widen the table area
         ax_table.axis('off')
         
         top10 = df.nlargest(10, 'super_score')
-        columns = ['#', 'Ticker', 'Setor', 'Preço', 'P/L', 'DY', 'Score']
+        
+        # New columns with Liquidity
+        columns = ['#', 'Ticker', 'Setor', 'Preço', 'P/L', 'DY', 'Liq. 2M', 'Score']
+        
+        # Helper to format liquidity
+        def fmt_liq(val):
+            if pd.isna(val): return "-"
+            if val >= 1_000_000: return f"{val/1_000_000:.1f}M"
+            if val >= 1_000: return f"{val/1_000:.0f}K"
+            return f"{val:.0f}"
+
         data = []
         for i, row in enumerate(top10.itertuples(), 1):
+             # Safe access to liquidez_2meses
+             liq = getattr(row, 'liquidez_2meses', 0)
+             
              data.append([
                 str(i),
                 row.papel,
-                str(row.setor)[:15] if pd.notna(row.setor) else '-',
+                str(row.setor)[:18] if pd.notna(row.setor) else '-', # Slightly more chars allowed or will fit better
                 f"{row.cotacao:.2f}",
                 f"{row.p_l:.1f}x",
                 f"{row.dividend_yield:.1f}%",
+                fmt_liq(liq),
                 f"{row.super_score:.1f}"
             ])
             
+        # Adjusted widths for 8 columns
+        # #, Ticker, Setor, Preco, PL, DY, Liq, Score
+        col_widths = [0.05, 0.12, 0.23, 0.10, 0.12, 0.12, 0.13, 0.13]
+        
         table = ax_table.table(cellText=data, colLabels=columns, loc='center', cellLoc='center',
-                              colWidths=[0.05, 0.15, 0.2, 0.15, 0.15, 0.15, 0.15])
+                              colWidths=col_widths)
         table.auto_set_font_size(False)
         table.set_fontsize(10)
         table.scale(1, 1.8)
