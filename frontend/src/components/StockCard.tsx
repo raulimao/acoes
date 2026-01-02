@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap } from 'lucide-react';
+import { Zap, AlertTriangle, Droplets, TrendingDown } from 'lucide-react';
 
 interface Stock {
     papel: string;
@@ -10,6 +10,7 @@ interface Stock {
     p_vp?: number;
     dividend_yield?: number;
     super_score?: number;
+    red_flags?: string[];
 }
 
 interface StockCardProps {
@@ -28,6 +29,17 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
         return 'text-red-400 bg-red-500/20';
     };
 
+    // Helper to get flag details
+    const getFlagDetails = (flag: string) => {
+        switch (flag) {
+            case 'LOW_LIQ': return { icon: Droplets, color: 'text-orange-400', label: 'Baixa Liquidez' };
+            case 'DIV_TRAP': return { icon: AlertTriangle, color: 'text-red-500', label: 'Div. Trap' };
+            case 'HIGH_DEBT': return { icon: TrendingDown, color: 'text-red-400', label: 'Endividada' };
+            case 'LOW_MARGIN': return { icon: AlertTriangle, color: 'text-yellow-400', label: 'Margem Baixa' };
+            default: return null;
+        }
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -37,7 +49,7 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
             onClick={() => onClick(stock)}
         >
             {/* Header: Name + Score */}
-            <div className="flex justify-between items-start mb-3">
+            <div className="flex justify-between items-start mb-1">
                 <div>
                     <h3 className="text-lg font-bold text-white truncate">{stock.papel}</h3>
                     <p className="text-xs text-white/40">{stock.setor?.slice(0, 20) || 'N/A'}</p>
@@ -47,6 +59,23 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
                     {stock.super_score !== undefined ? stock.super_score.toFixed(1) : '0.0'}
                 </div>
             </div>
+
+            {/* Red Flags Row */}
+            {stock.red_flags && stock.red_flags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                    {stock.red_flags.map((flag) => {
+                        const details = getFlagDetails(flag);
+                        if (!details) return null;
+                        const Icon = details.icon;
+                        return (
+                            <div key={flag} className={`flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900/50 border border-white/5 ${details.color} text-[10px] font-medium`}>
+                                <Icon className="w-3 h-3" />
+                                {details.label}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Price */}
             <p className="text-xl font-bold text-white mb-3">

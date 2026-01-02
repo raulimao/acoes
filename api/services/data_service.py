@@ -37,8 +37,14 @@ def get_market_data() -> pd.DataFrame:
             if response.data and response.data.get("data"):
                 data_list = response.data["data"]
                 if data_list:
-                    logger.info("cache_hit_db", rows=len(data_list), age=response.data.get("updated_at"))
                     df = pd.DataFrame(data_list)
+                    
+                    # Validate Schema - Force refresh if new columns missing
+                    if 'red_flags' not in df.columns:
+                        logger.warning("cache_db_outdated_missing_flags")
+                        raise Exception("Cache Schema Mismatch: Missing red_flags")
+                    
+                    logger.info("cache_hit_db", rows=len(data_list), age=response.data.get("updated_at"))
                     
                     # Update RAM
                     _ram_cache = df

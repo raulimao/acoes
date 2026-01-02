@@ -85,6 +85,21 @@ def limpar_valores(df: pd.DataFrame, skip_cols: list = None) -> pd.DataFrame:
             
             # Convert to numeric (preserves negative signs)
             df[col] = pd.to_numeric(df[col], errors="coerce")
+            
+    # Normalize percentage columns -> Divide by 100
+    # Fundamentus returns 15.0 for 15.0%, but config expects 0.15
+    pct_cols = [
+        "dividend_yield", 
+        "margem_ebit", 
+        "margem_liquida", 
+        "roic", 
+        "roe", 
+        "crescimento_receita_5a"
+    ]
+    
+    for col in pct_cols:
+        if col in df.columns:
+            df[col] = df[col] / 100.0
     
     return df
 
