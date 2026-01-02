@@ -160,7 +160,7 @@ async def force_refresh(background_tasks: BackgroundTasks, key: str = Query(None
 from services.config_service import get_config, update_config, invalidate_cache, get_red_flag_thresholds
 
 # Admin email whitelist (can be moved to env or DB later)
-ADMIN_EMAILS = ["raulkns@gmail.com", "admin@norteacoes.com"]
+ADMIN_EMAILS = ["raulimaoliveira@gmail.com", "raulennonlima@gmail.com", "admin@norteacoes.com"]
 
 
 class AdminConfigUpdate(BaseModel):
