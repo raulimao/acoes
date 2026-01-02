@@ -66,6 +66,12 @@ export default function AdminPage() {
 
         try {
             const token = localStorage.getItem('token');
+
+            if (!token) {
+                setError('Você não está logado. Faça login primeiro.');
+                return;
+            }
+
             const response = await fetch(`${API_URL}/api/admin/config`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -73,18 +79,21 @@ export default function AdminPage() {
             });
 
             if (response.status === 403) {
-                setError('Acesso negado. Você não tem permissão de administrador.');
+                const data = await response.json().catch(() => ({}));
+                setError(`Acesso negado: ${data.detail || 'Você não tem permissão de administrador.'}`);
                 return;
             }
 
             if (!response.ok) {
-                throw new Error('Failed to fetch config');
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.detail || `HTTP ${response.status}`);
             }
 
             const data = await response.json();
             setConfig(data);
-        } catch (err) {
-            setError('Erro ao carregar configurações. Verifique se você está logado como admin.');
+        } catch (err: any) {
+            console.error('Admin fetch error:', err);
+            setError(`Erro: ${err.message || 'Verifique se você está logado como admin.'}`);
         } finally {
             setLoading(false);
         }
