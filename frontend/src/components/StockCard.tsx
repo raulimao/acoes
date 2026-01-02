@@ -36,6 +36,10 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
             case 'DIV_TRAP': return { icon: AlertTriangle, color: 'text-red-500', label: 'Div. Trap' };
             case 'HIGH_DEBT': return { icon: TrendingDown, color: 'text-red-400', label: 'Endividada' };
             case 'LOW_MARGIN': return { icon: AlertTriangle, color: 'text-yellow-400', label: 'Margem Baixa' };
+            // NEW Sprint 1 Flags
+            case 'STAGNANT': return { icon: TrendingDown, color: 'text-purple-400', label: 'Estagnada' };
+            case 'CYCLICAL': return { icon: AlertTriangle, color: 'text-amber-400', label: 'Setor Cíclico' };
+            case 'REGULATED': return { icon: AlertTriangle, color: 'text-blue-400', label: 'Risco Regulatório' };
             default: return null;
         }
     };

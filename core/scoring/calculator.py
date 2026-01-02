@@ -32,6 +32,26 @@ def check_red_flags(row: pd.Series) -> List[str]:
     liq = row.get('liquidez_2meses', 0)
     if liq < 500_000:
         flags.append('LOW_LIQ')
+    
+    # ====== NEW FLAGS (Sprint 1) ======
+    
+    # 5. Stagnant Company (Negative Growth)
+    growth = row.get('crescimento_receita_5a', 0)
+    if growth < 0:  # Revenue shrinking over 5 years
+        flags.append('STAGNANT')
+    
+    # 6. Cyclical Sector Warning
+    setor = str(row.get('setor', '')).lower()
+    cyclical_keywords = ['mineração', 'mineracao', 'petróleo', 'petroleo', 
+                         'siderurgia', 'metalurgia', 'papel', 'celulose', 'commodities']
+    if any(kw in setor for kw in cyclical_keywords):
+        flags.append('CYCLICAL')
+    
+    # 7. High Regulatory Risk Sector
+    regulated_keywords = ['energia', 'elétrica', 'eletrica', 'saúde', 'saude', 
+                          'educação', 'educacao', 'telecom', 'saneamento', 'água', 'agua']
+    if any(kw in setor for kw in regulated_keywords):
+        flags.append('REGULATED')
         
     return flags
 
