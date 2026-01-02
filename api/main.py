@@ -154,6 +154,67 @@ async def force_refresh(background_tasks: BackgroundTasks, key: str = Query(None
 
 
 # ============================================
+# ADMIN CONFIGURATION ENDPOINTS
+# ============================================
+
+from services.config_service import get_config, update_config, invalidate_cache, get_red_flag_thresholds
+
+# Admin email whitelist (can be moved to env or DB later)
+ADMIN_EMAILS = ["raulkns@gmail.com", "admin@norteacoes.com"]
+
+
+class AdminConfigUpdate(BaseModel):
+    key: str = Field(..., description="Config section: red_flags, strategy_weights, report_settings, filter_settings")
+    value: dict = Field(..., description="New values for that section")
+
+
+@app.get("/api/admin/config")
+async def get_admin_config(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Get all configuration settings (admin only)."""
+    user = await get_current_user(credentials)
+    
+    if not user or user.get("email") not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    return get_config()
+
+
+@app.post("/api/admin/config")
+async def update_admin_config(
+    update: AdminConfigUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    """Update a configuration section (admin only)."""
+    user = await get_current_user(credentials)
+    
+    if not user or user.get("email") not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    valid_keys = ["red_flags", "strategy_weights", "report_settings", "filter_settings"]
+    if update.key not in valid_keys:
+        raise HTTPException(status_code=400, detail=f"Invalid key. Must be one of: {valid_keys}")
+    
+    success = update_config(update.key, update.value)
+    
+    if success:
+        return {"status": "success", "message": f"Config '{update.key}' updated", "new_value": update.value}
+    else:
+        raise HTTPException(status_code=500, detail="Failed to update config")
+
+
+@app.post("/api/admin/config/reset")
+async def reset_admin_config(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Reset config cache to reload from DB (admin only)."""
+    user = await get_current_user(credentials)
+    
+    if not user or user.get("email") not in ADMIN_EMAILS:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    invalidate_cache()
+    return {"status": "success", "message": "Config cache invalidated"}
+
+
+# ============================================
 # MODELS
 # ============================================
 

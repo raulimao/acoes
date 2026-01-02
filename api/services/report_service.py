@@ -216,8 +216,8 @@ def _create_top_stocks_page(pdf, df):
             str(row.setor)[:20],
             f"R$ {row.cotacao:.2f}",
             f"{row.p_l:.1f}x",
-            f"{row.dividend_yield:.1f}%",
-            f"{row.roe:.1f}%",
+            f"{row.dividend_yield * 100:.1f}%",  # Convert decimal to percentage
+            f"{row.roe * 100:.1f}%",             # Convert decimal to percentage
             f"{row.super_score:.1f}",
             alert
         ])
@@ -359,8 +359,8 @@ def _create_one_pager(pdf, row):
         ("Cotação", f"R$ {row.cotacao:.2f}"),
         ("P/L", f"{row.p_l:.1f}x"),
         ("P/VP", f"{getattr(row, 'p_vp', 0):.1f}x"),
-        ("Div. Yield", f"{row.dividend_yield:.1f}%"),
-        ("ROE", f"{row.roe:.1f}%"),
+        ("Div. Yield", f"{row.dividend_yield * 100:.1f}%"),  # Convert decimal to percentage
+        ("ROE", f"{row.roe * 100:.1f}%"),                    # Convert decimal to percentage
         ("Liq. 2M", f"R$ {row.liquidez_2meses/1e6:.0f}M")
     ]
     

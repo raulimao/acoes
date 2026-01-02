@@ -8,36 +8,57 @@ from typing import Dict, List
 
 from config.strategies_config import FILTROS, ESTRATEGIAS
 
+# Default thresholds (fallback if config_service unavailable)
+DEFAULT_THRESHOLDS = {
+    "div_trap_threshold": 0.15,
+    "low_liq_threshold": 500000,
+    "high_debt_threshold": 3.0,
+    "low_margin_threshold": 0.03,
+    "stagnant_growth_threshold": 0
+}
+
+
+def _get_thresholds() -> Dict:
+    """Get thresholds from config_service or use defaults."""
+    try:
+        from api.services.config_service import get_red_flag_thresholds
+        return get_red_flag_thresholds()
+    except ImportError:
+        # Running outside of API context (e.g., scripts)
+        return DEFAULT_THRESHOLDS
+
 
 def check_red_flags(row: pd.Series) -> List[str]:
-    """Identifies potential risks in the asset."""
+    """Identifies potential risks in the asset using dynamic thresholds."""
     flags = []
+    thresholds = _get_thresholds()
     
     # 1. Dividend Trap (Too high)
     dy = row.get('dividend_yield', 0)
-    if dy > 0.15: # > 15%
+    if dy > thresholds.get('div_trap_threshold', 0.15):
         flags.append('DIV_TRAP')
         
     # 2. Margin Collapse (Too low)
     margem = row.get('margem_liquida', 0)
-    if 0 < margem < 0.03: # < 3%
+    margin_threshold = thresholds.get('low_margin_threshold', 0.03)
+    if 0 < margem < margin_threshold:
         flags.append('LOW_MARGIN')
         
     # 3. High Debt
     div_pat = row.get('div_bruta_patrimonio', 0)
-    if div_pat > 3.0:
+    if div_pat > thresholds.get('high_debt_threshold', 3.0):
         flags.append('HIGH_DEBT')
         
     # 4. Low Liquidity
     liq = row.get('liquidez_2meses', 0)
-    if liq < 500_000:
+    if liq < thresholds.get('low_liq_threshold', 500000):
         flags.append('LOW_LIQ')
     
-    # ====== NEW FLAGS (Sprint 1) ======
+    # ====== SECTOR-BASED FLAGS ======
     
     # 5. Stagnant Company (Negative Growth)
     growth = row.get('crescimento_receita_5a', 0)
-    if growth < 0:  # Revenue shrinking over 5 years
+    if growth < thresholds.get('stagnant_growth_threshold', 0):
         flags.append('STAGNANT')
     
     # 6. Cyclical Sector Warning
