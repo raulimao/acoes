@@ -17,6 +17,7 @@ GROQ_MODEL = "compound-beta"
 # Supabase (a configurar)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 
 # Fundamentus
 FUNDAMENTUS_URL = "https://www.fundamentus.com.br/resultado.php"

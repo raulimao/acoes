@@ -11,31 +11,26 @@ import structlog
 logger = structlog.get_logger()
 
 # Default configuration (fallback if DB is unavailable)
+
+from config.strategies_config import (
+    DEFAULT_RED_FLAGS, 
+    DEFAULT_REPORT_SETTINGS, 
+    DEFAULT_FILTER_SETTINGS
+)
+
+# Default configuration (fallback if DB is unavailable)
 DEFAULT_CONFIG = {
-    "red_flags": {
-        "div_trap_threshold": 0.15,      # 15% DY
-        "low_liq_threshold": 500000,     # R$ 500k/day
-        "high_debt_threshold": 3.0,      # 3x Debt/Equity
-        "low_margin_threshold": 0.03,    # 3% margin
-        "stagnant_growth_threshold": 0   # 0% = shrinking
-    },
+    "red_flags": DEFAULT_RED_FLAGS,
     "strategy_weights": {
-        "graham": 1.0,
+        "graham": 1.0, 
         "greenblatt": 1.5,
         "bazin": 1.0,
         "qualidade": 2.0
-    },
-    "report_settings": {
-        "top_n_stocks": 10,
-        "show_cyclical_warning": True,
-        "show_regulated_warning": True,
-        "show_stagnant_warning": True
-    },
-    "filter_settings": {
-        "dedup_enabled": True,
-        "liquidity_score_cap": 50.0
-    }
+    }, # This part is still partially duplicated but strategy_weights structure is simpler here
+    "report_settings": DEFAULT_REPORT_SETTINGS,
+    "filter_settings": DEFAULT_FILTER_SETTINGS
 }
+
 
 # In-memory cache
 _config_cache: Optional[Dict[str, Any]] = None

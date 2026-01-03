@@ -98,8 +98,8 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
                 </div>
                 <div className="bg-white/5 rounded-lg py-2">
                     <p className="text-xs text-white/40">DY</p>
-                    <p className={`text-sm font-semibold ${stock.dividend_yield && stock.dividend_yield > 6 ? 'text-green-400' : 'text-white'}`}>
-                        {stock.dividend_yield?.toFixed(1) || '0'}%
+                    <p className={`text-sm font-semibold ${stock.dividend_yield && stock.dividend_yield > 0.06 ? 'text-green-400' : 'text-white'}`}>
+                        {stock.dividend_yield ? (stock.dividend_yield * 100).toFixed(1) : '0'}%
                     </p>
                 </div>
             </div>

@@ -79,18 +79,43 @@ def run_scraper_update_sync() -> bool:
         _last_update = datetime.now()
         
         # Save to DB (Best effort)
+        # Save to DB (Best effort) with Smart Merge
         try:
             client = get_client()
             if client:
-                # Convert to JSON-serializable list (handle NaN)
-                data = df.fillna(0).to_dict(orient="records")
+                # 1. Fetch existing data to preserve extra columns (DRE, Balaço, etc)
+                existing_response = client.table("market_data_cache").select("data").eq("id", 1).maybe_single().execute()
+                existing_map = {}
                 
+                if existing_response.data and existing_response.data.get("data"):
+                    # Create map {ticker: record}
+                    for item in existing_response.data["data"]:
+                        if 'papel' in item:
+                            existing_map[item['papel']] = item
+                
+                # 2. Prepare new data
+                new_records = df.fillna(0).to_dict(orient="records")
+                merged_data = []
+                
+                for new_item in new_records:
+                    ticker = new_item.get('papel')
+                    if ticker and ticker in existing_map:
+                        # Smart Merge: Start with existing (details) -> Update with New (prices/scores)
+                        # This preserves 'dre_...', 'oscilacao_...' while updating 'cotacao', 'p_l', 'super_score'
+                        merged_item = existing_map[ticker].copy()
+                        merged_item.update(new_item)
+                        merged_data.append(merged_item)
+                    else:
+                        merged_data.append(new_item)
+                
+                # 3. Upsert Merged Data
                 client.table("market_data_cache").upsert({
                     "id": 1,
-                    "data": data,
+                    "data": merged_data,
                     "updated_at": datetime.now().isoformat()
                 }).execute()
-                logger.info("db_cache_updated")
+                
+                logger.info("db_cache_updated_merged", count=len(merged_data))
         except Exception as db_err:
             logger.error("db_cache_write_failed", error=str(db_err))
             

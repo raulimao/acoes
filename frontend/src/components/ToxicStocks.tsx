@@ -108,16 +108,16 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
 
         // ROE Analysis
         if (stock.roe && stock.roe < 0) {
-            reasons.push(`ROE negativo (${stock.roe.toFixed(1)}%)`);
+            reasons.push(`ROE negativo (${(stock.roe * 100).toFixed(1)}%)`);
             riskScore += 3;
         } else if (stock.roe && stock.roe < 5) {
-            reasons.push(`ROE baixo (${stock.roe.toFixed(1)}%)`);
+            reasons.push(`ROE baixo (${(stock.roe * 100).toFixed(1)}%)`);
             riskScore += 1;
         }
 
         // ROIC Analysis
         if (stock.roic && stock.roic < 0) {
-            reasons.push(`ROIC negativo (${stock.roic.toFixed(1)}%)`);
+            reasons.push(`ROIC negativo (${(stock.roic * 100).toFixed(1)}%)`);
             riskScore += 2;
         }
 
@@ -338,7 +338,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                                     <div className="text-center p-2 rounded-lg bg-white/5">
                                         <p className="text-white/40 text-xs">ROE</p>
                                         <p className={`font-medium ${stock.roe && stock.roe < 0 ? 'text-red-400' : 'text-white'}`}>
-                                            {stock.roe?.toFixed(1) || '0'}%
+                                            {stock.roe ? (stock.roe * 100).toFixed(1) : '0'}%
                                         </p>
                                     </div>
                                     <div className="text-center p-2 rounded-lg bg-white/5">

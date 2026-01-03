@@ -51,10 +51,10 @@ export default function StockComparisonModal({ stockA, stockB, onClose }: StockC
         { label: 'P/VP', key: 'p_vp', higherIsBetter: false, format: (v: number) => v?.toFixed(2) ?? 'N/A' },
 
         // Dividendos & Rentabilidade
-        { label: 'Dividend Yield', key: 'dividend_yield', higherIsBetter: true, format: (v: number) => v ? `${v.toFixed(2)}%` : 'N/A' }, // FIXED: No *100
-        { label: 'ROE', key: 'roe', higherIsBetter: true, format: (v: number) => v ? `${v.toFixed(2)}%` : 'N/A' },
-        { label: 'ROIC', key: 'roic', higherIsBetter: true, format: (v: number) => v ? `${v.toFixed(2)}%` : 'N/A' },
-        { label: 'Margem Líquida', key: 'margem_liquida', higherIsBetter: true, format: (v: number) => v ? `${v.toFixed(2)}%` : 'N/A' },
+        { label: 'Dividend Yield', key: 'dividend_yield', higherIsBetter: true, format: (v: number) => v ? `${(v * 100).toFixed(2)}%` : 'N/A' },
+        { label: 'ROE', key: 'roe', higherIsBetter: true, format: (v: number) => v ? `${(v * 100).toFixed(2)}%` : 'N/A' },
+        { label: 'ROIC', key: 'roic', higherIsBetter: true, format: (v: number) => v ? `${(v * 100).toFixed(2)}%` : 'N/A' },
+        { label: 'Margem Líquida', key: 'margem_liquida', higherIsBetter: true, format: (v: number) => v ? `${(v * 100).toFixed(2)}%` : 'N/A' },
 
         // Saúde Financeira
         { label: 'Liquidez Corrente', key: 'liquidez_corrente', higherIsBetter: true, format: (v: number) => v?.toFixed(2) ?? 'N/A' },

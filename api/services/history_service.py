@@ -41,8 +41,28 @@ def save_to_historico(df: pd.DataFrame, score_minimo: float = None) -> int:
     
     # Prepare data for insertion
     today = datetime.now().isoformat()
+    today_date_only = date.today().isoformat() # For querying/deleting
     records = []
     
+    # List of tickers to update
+    tickers_to_update = df_qualified['papel'].unique().tolist()
+    
+    try:
+        # STRATEGY: "Daily Upsert" (Delete today's records for these tickers, then insert new)
+        # 1. Delete existing records for today (to avoid duplicates/bloat)
+        # Using a single query to delete all relevant records for today
+        if tickers_to_update:
+             # filter: data >= today AND papel IN [tickers]
+             # Note: Supabase 'data' is ISO string, so checking >= 2023-01-01 works for timestamps on that day
+             client.table('historico') \
+                .delete() \
+                .gte('data', today_date_only) \
+                .in_('papel', tickers_to_update) \
+                .execute()
+    except Exception as e:
+        print(f"⚠️ Erro ao limpar duplicatas do dia (tentando inserir mesmo assim): {e}")
+
+    # 2. Prepare new records
     for _, row in df_qualified.iterrows():
         record = {
             'data': today,
@@ -62,10 +82,10 @@ def save_to_historico(df: pd.DataFrame, score_minimo: float = None) -> int:
         records.append(record)
     
     try:
-        # Insert records
+        # 3. Insert records
         result = client.table('historico').insert(records).execute()
         saved_count = len(result.data) if result.data else 0
-        print(f"✅ {saved_count} ações salvas no histórico")
+        print(f"✅ {saved_count} ações salvas no histórico (Upsert Diário)")
         return saved_count
     except Exception as e:
         print(f"❌ Erro ao salvar histórico: {e}")

@@ -28,9 +28,10 @@ from utils.logging_config import logger
 
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
-from services.setores_service import get_all_setores
-from services.data_service import get_market_data, update_market_data_background
+# from services.setores_service import get_all_setores (Removed)
 
+from services.data_service import get_market_data, update_market_data_background
+from services.ai_chat import ChatMessage, ChatRequest, process_chat, check_chat_limit
 
 from services.auth_service import add_user, verify_user, get_user_by_email, initialize_database, update_user_premium, upsert_oauth_user, register_supabase_user, resend_confirmation_email, ensure_profile_exists
 from services.payment_service import create_checkout_session, verify_webhook_signature, create_portal_session
@@ -142,15 +143,30 @@ def get_stock_data():
     return get_market_data()
 
 
+
 @app.post("/api/admin/refresh-cache")
 async def force_refresh(background_tasks: BackgroundTasks, key: str = Query(None)):
-    """Force background data update."""
-    # Simple protection
+    """Force background data update (Admin)."""
     if key != os.getenv("ADMIN_KEY", "admin123"):
         raise HTTPException(status_code=403, detail="Forbidden")
         
     background_tasks.add_task(update_market_data_background)
     return {"status": "started", "message": "Scraper rodando em background..."}
+
+
+@app.get("/api/cron/update")
+async def cron_update(background_tasks: BackgroundTasks, key: str = Query(None)):
+    """
+    Standard Cron Endpoint for external schedulers (cron-job.org, GitHub Actions).
+    Supports GET request which is easier for some cron services.
+    """
+    if key != os.getenv("CRON_SECRET", os.getenv("ADMIN_KEY", "admin123")):
+        raise HTTPException(status_code=403, detail="Forbidden")
+        
+    logger.info("cron_triggered", source="external")
+    background_tasks.add_task(update_market_data_background)
+    return {"status": "success", "message": "Cron job started"}
+
 
 
 # ============================================
@@ -855,16 +871,8 @@ async def get_top_stocks(n: int = 10):
 
 
 # ============================================
-# AI CHAT ENDPOINT
+# AI CHAT ENDPOINT (using modularized ai_chat service)
 # ============================================
-
-class ChatMessage(BaseModel):
-    role: str
-    content: str
-
-class ChatRequest(BaseModel):
-    message: str
-    history: Optional[List[ChatMessage]] = []
 
 import re
 
@@ -895,36 +903,6 @@ def get_friendly_sector(sector: str) -> str:
     """Convert technical sector name to user-friendly name."""
     return FRIENDLY_SECTORS.get(sector, sector)
 
-# Chat limits storage (in production, use Redis or database)
-chat_limits = {}  # {session_id: {"count": 0, "date": "2024-01-01"}}
-FREE_CHAT_LIMIT = 5
-
-def check_chat_limit(session_id: str = "anonymous") -> dict:
-    """Check if user has remaining free chats."""
-    today = datetime.now().strftime("%Y-%m-%d")
-    
-    if session_id not in chat_limits:
-        chat_limits[session_id] = {"count": 0, "date": today}
-    
-    # Reset count if new day
-    if chat_limits[session_id]["date"] != today:
-        chat_limits[session_id] = {"count": 0, "date": today}
-    
-    remaining = FREE_CHAT_LIMIT - chat_limits[session_id]["count"]
-    return {
-        "remaining": max(0, remaining),
-        "limit": FREE_CHAT_LIMIT,
-        "used": chat_limits[session_id]["count"],
-        "can_chat": remaining > 0
-    }
-
-def increment_chat_count(session_id: str = "anonymous"):
-    """Increment chat count for session."""
-    today = datetime.now().strftime("%Y-%m-%d")
-    if session_id not in chat_limits:
-        chat_limits[session_id] = {"count": 0, "date": today}
-    chat_limits[session_id]["count"] += 1
-
 
 class PortfolioProfile(BaseModel):
     profile: str  # "conservador", "moderado", "agressivo"
@@ -934,6 +912,7 @@ class PortfolioProfile(BaseModel):
 async def get_chat_limits(session_id: str = "anonymous"):
     """Get remaining chat limits for the session."""
     return check_chat_limit(session_id)
+
 
 
 @app.post("/api/portfolio/suggested")
@@ -1256,376 +1235,18 @@ async def get_alerts():
 # The AI interprets user intent directly from context
 # including typos, synonyms, and sector correlations
 
-def simple_fallback_response(df) -> dict:
-    """Simple fallback when Groq API fails."""
-    if df.empty:
-        return {"response": "Desculpe, não há dados disponíveis no momento."}
-    
-    top_5 = df.head(5)[['papel', 'setor', 'super_score']].to_dict(orient='records')
-    response = "🏆 **Top 5 ações por Super Score:**\n\n"
-    for i, s in enumerate(top_5, 1):
-        response += f"{i}. **{s['papel']}** ({s['setor']}) - Score: {s['super_score']:.1f}\n"
-    response += "\n💡 Para análises mais detalhadas, verifique se a API Groq está configurada."
-    return {"response": response}
-
-
 @app.post("/api/chat")
 async def chat_with_ai(request: ChatRequest, session_id: str = "anonymous"):
-    """Dynamic AI chat - lets Groq interpret user intent with full database context."""
-    import os
-    
-    # Check chat limits
-    limits = check_chat_limit(session_id)
-    if not limits["can_chat"]:
-        return {
-            "response": "🔒 Você atingiu o limite de 5 perguntas gratuitas por dia.\n\n💎 **Assine o plano Pro** para perguntas ilimitadas e recursos exclusivos!",
-            "limit_reached": True,
-            "limits": limits
-        }
-    
-    message = request.message
-    
-    # Increment chat count
-    increment_chat_count(session_id)
-    
-    # Get complete database snapshot for AI to analyze
+    """Dynamic AI chat - uses modularized ai_chat service."""
     df = get_stock_data()
-    
-    if df.empty:
-        return {"response": "Desculpe, não há dados de ações disponíveis no momento."}
-    
-    # ========================================
-    # SMART PRE-FILTERING BASED ON USER CRITERIA
-    # ========================================
-    # Detect and apply numeric filters before sending to AI
-    
-    msg_lower = message.lower()
-    filtered_df = df.copy()
-    applied_filters = []
-    
-    # Helper to parse numbers with various formats (1 milhão, 1M, 1.000.000, etc.)
-    def parse_number(text):
-        text = text.replace('.', '').replace(',', '.').strip()
-        multipliers = {'milhao': 1_000_000, 'milhões': 1_000_000, 'milhoes': 1_000_000, 
-                       'mi': 1_000_000, 'm': 1_000_000, 'mil': 1_000, 'k': 1_000,
-                       'bilhao': 1_000_000_000, 'bilhões': 1_000_000_000, 'bi': 1_000_000_000}
-        for word, mult in multipliers.items():
-            if word in text.lower():
-                num = re.search(r'(\d+(?:[.,]\d+)?)', text)
-                if num:
-                    return float(num.group(1).replace(',', '.')) * mult
-        try:
-            return float(text)
-        except:
-            return None
-    
-    # Liquidez filter (> X or < X)
-    liq_match = re.search(r'liquidez\s*(?:maior|acima|>|superior)\s*(?:que|de|a)?\s*[rR$]*\s*([\d.,]+\s*(?:milhao|milhões|milhoes|mi|m|mil|k|bilhao|bi)?)', msg_lower)
-    if liq_match and 'liquidez_2meses' in filtered_df.columns:
-        min_liq = parse_number(liq_match.group(1))
-        if min_liq:
-            filtered_df = filtered_df[filtered_df['liquidez_2meses'] >= min_liq]
-            applied_filters.append(f"Liquidez >= R$ {min_liq:,.0f}")
-    
-    liq_match_lt = re.search(r'liquidez\s*(?:menor|abaixo|<|inferior)\s*(?:que|de|a)?\s*[rR$]*\s*([\d.,]+\s*(?:milhao|milhões|milhoes|mi|m|mil|k|bilhao|bi)?)', msg_lower)
-    if liq_match_lt and 'liquidez_2meses' in filtered_df.columns:
-        max_liq = parse_number(liq_match_lt.group(1))
-        if max_liq:
-            filtered_df = filtered_df[filtered_df['liquidez_2meses'] <= max_liq]
-            applied_filters.append(f"Liquidez <= R$ {max_liq:,.0f}")
-    
-    # P/L filter
-    pl_match_lt = re.search(r'p/?l\s*(?:menor|abaixo|<)\s*(?:que|de|a)?\s*(\d+(?:[.,]\d+)?)', msg_lower)
-    if pl_match_lt and 'p_l' in filtered_df.columns:
-        max_pl = float(pl_match_lt.group(1).replace(',', '.'))
-        filtered_df = filtered_df[(filtered_df['p_l'] > 0) & (filtered_df['p_l'] <= max_pl)]
-        applied_filters.append(f"P/L <= {max_pl}")
-    
-    pl_match_gt = re.search(r'p/?l\s*(?:maior|acima|>)\s*(?:que|de|a)?\s*(\d+(?:[.,]\d+)?)', msg_lower)
-    if pl_match_gt and 'p_l' in filtered_df.columns:
-        min_pl = float(pl_match_gt.group(1).replace(',', '.'))
-        filtered_df = filtered_df[filtered_df['p_l'] >= min_pl]
-        applied_filters.append(f"P/L >= {min_pl}")
-    
-    # DY filter (> X%)
-    dy_match = re.search(r'(?:dy|dividend|dividendo)s?\s*(?:maior|acima|>|superior)\s*(?:que|de|a)?\s*(\d+(?:[.,]\d+)?)\s*%?', msg_lower)
-    if dy_match and 'dividend_yield' in filtered_df.columns:
-        min_dy = float(dy_match.group(1).replace(',', '.'))
-        # Handle both decimal (0.06) and percentage (6) formats
-        if filtered_df['dividend_yield'].max() < 1:  # Data is in decimal
-            min_dy_decimal = min_dy / 100
-            filtered_df = filtered_df[filtered_df['dividend_yield'] >= min_dy_decimal]
-        else:
-            filtered_df = filtered_df[filtered_df['dividend_yield'] >= min_dy]
-        applied_filters.append(f"DY >= {min_dy}%")
-    
-    # ROE filter (> X%)
-    roe_match = re.search(r'roe\s*(?:maior|acima|>|superior)\s*(?:que|de|a)?\s*(\d+(?:[.,]\d+)?)\s*%?', msg_lower)
-    if roe_match and 'roe' in filtered_df.columns:
-        min_roe = float(roe_match.group(1).replace(',', '.'))
-        if filtered_df['roe'].max() < 1:
-            min_roe_decimal = min_roe / 100
-            filtered_df = filtered_df[filtered_df['roe'] >= min_roe_decimal]
-        else:
-            filtered_df = filtered_df[filtered_df['roe'] >= min_roe]
-        applied_filters.append(f"ROE >= {min_roe}%")
-    
-    # Build filter context for AI
-    filter_context = ""
-    if applied_filters:
-        filter_context = f"\n⚠️ FILTROS APLICADOS: {', '.join(applied_filters)}\nResultados filtrados: {len(filtered_df)} ações de {len(df)} total.\n"
-        # Use filtered data
-        df = filtered_df
-    
-    # ========================================
-    # BUILD COMPREHENSIVE AI CONTEXT WITH ALL DATA
-    # ========================================
-    
-    total_stocks = len(df)
-    
-    # Get all unique sectors from actual database
-    sectors = df['setor'].unique().tolist() if 'setor' in df.columns else []
-    sectors = [s for s in sectors if s and s != 'N/A']
-    
-    # Helper function to format percentage
-    def fmt_pct(val):
-        if pd.isna(val) or val == 0:
-            return "0.0%"
-        return f"{val * 100:.1f}%" if abs(val) < 1 else f"{val:.1f}%"
-    
-    # Helper function to format number
-    def fmt_num(val):
-        if pd.isna(val):
-            return "N/A"
-        return f"{val:.2f}"
-    
-    # ========================================
-    # TOP 10 AÇÕES BY SUPER SCORE (ALL INDICATORS)
-    # ========================================
-    top_10_text = ""
-    for i, (_, s) in enumerate(df.head(10).iterrows(), 1):
-        top_10_text += f"""
-{i}. {s['papel']} ({s.get('setor', 'N/A')})
-   Score: {fmt_num(s.get('super_score', 0))} | Cotação: R$ {fmt_num(s.get('cotacao', 0))}
-   P/L: {fmt_num(s.get('p_l', 0))} | P/VP: {fmt_num(s.get('p_vp', 0))} | DY: {fmt_pct(s.get('dividend_yield', 0))}
-   ROE: {fmt_pct(s.get('roe', 0))} | ROIC: {fmt_pct(s.get('roic', 0))} | Liq.2M: R$ {s.get('liquidez_2meses', 0):,.0f}
-"""
-    
-    # ========================================
-    # TOP 10 BY LIQUIDEZ (volume negociado)
-    # ========================================
-    if 'liquidez_2meses' in df.columns:
-        top_liq = df.nlargest(10, 'liquidez_2meses')[['papel', 'setor', 'liquidez_2meses', 'super_score']]
-        liq_text = "\n".join([f"• {r['papel']} ({r['setor']}): R$ {r['liquidez_2meses']:,.0f}/dia | Score: {r['super_score']:.1f}" 
-                             for _, r in top_liq.iterrows()])
-    else:
-        liq_text = "Dados de liquidez não disponíveis"
-    
-    # ========================================
-    # TOP 10 BY DIVIDEND YIELD
-    # ========================================
-    top_dy = df[df['dividend_yield'] > 0].nlargest(10, 'dividend_yield')[['papel', 'setor', 'dividend_yield', 'p_l']]
-    dy_text = "\n".join([f"• {r['papel']} ({r['setor']}): DY {fmt_pct(r['dividend_yield'])} | P/L: {fmt_num(r['p_l'])}" 
-                         for _, r in top_dy.iterrows()])
-    
-    # ========================================
-    # TOP 10 BY ROE (Rentabilidade)
-    # ========================================
-    top_roe = df[df['roe'] > 0].nlargest(10, 'roe')[['papel', 'setor', 'roe', 'roic']]
-    roe_text = "\n".join([f"• {r['papel']} ({r['setor']}): ROE {fmt_pct(r['roe'])} | ROIC: {fmt_pct(r['roic'])}" 
-                          for _, r in top_roe.iterrows()])
-    
-    # ========================================
-    # TOP 10 MAIS BARATAS (P/L baixo e positivo)
-    # ========================================
-    cheap = df[(df['p_l'] > 0) & (df['p_l'] < 100)].nsmallest(10, 'p_l')[['papel', 'setor', 'p_l', 'p_vp']]
-    cheap_text = "\n".join([f"• {r['papel']} ({r['setor']}): P/L {fmt_num(r['p_l'])} | P/VP: {fmt_num(r['p_vp'])}" 
-                            for _, r in cheap.iterrows()])
-    
-    # ========================================
-    # SETORES COM MELHORES AÇÕES
-    # ========================================
-    sector_summary = ""
-    for sector in sorted(sectors):
-        sector_stocks = df[df['setor'] == sector].nlargest(2, 'super_score')[['papel', 'super_score', 'liquidez_2meses']].to_dict(orient='records')
-        if sector_stocks:
-            top_names = ", ".join([f"{s['papel']}({s['super_score']:.1f})" for s in sector_stocks])
-            sector_summary += f"• {sector}: {top_names}\n"
-    
-    # ========================================
-    # DADOS ESPECÍFICOS DE AÇÃO (se mencionada)
-    # ========================================
-    ticker_pattern = r'\b([A-Z]{4}[0-9]{1,2})\b'
-    ticker_match = re.search(ticker_pattern, message.upper())
-    specific_stock_info = ""
-    
-    if ticker_match:
-        ticker = ticker_match.group(1)
-        stock = df[df['papel'] == ticker]
-        if not stock.empty:
-            s = stock.iloc[0]
-            rank = df[df['papel'] == ticker].index[0] + 1
-            specific_stock_info = f"""
-═══════════════════════════════════════════════════════
-📊 DADOS COMPLETOS DE {ticker} (Ranking #{rank} de {total_stocks})
-═══════════════════════════════════════════════════════
-Setor: {s.get('setor', 'N/A')} | Subsetor: {s.get('subsetor', 'N/A')}
-Cotação: R$ {fmt_num(s.get('cotacao', 0))}
-
-📈 SCORES:
-• Super Score: {fmt_num(s.get('super_score', 0))}
-• Graham: {fmt_num(s.get('score_graham', 0))}
-• Greenblatt: {fmt_num(s.get('score_greenblatt', 0))}
-• Bazin: {fmt_num(s.get('score_bazin', 0))}
-• Qualidade: {fmt_num(s.get('score_qualidade', 0))}
-
-💰 INDICADORES DE VALOR:
-• P/L: {fmt_num(s.get('p_l', 0))}
-• P/VP: {fmt_num(s.get('p_vp', 0))}
-• P/EBIT: {fmt_num(s.get('p_ebit', 0))}
-• EV/EBIT: {fmt_num(s.get('ev_ebit', 0))}
-• EV/EBITDA: {fmt_num(s.get('ev_ebitda', 0))}
-• PSR: {fmt_num(s.get('psr', 0))}
-• P/Ativo: {fmt_num(s.get('p_ativo', 0))}
-• P/Cap.Giro: {fmt_num(s.get('p_cap_giro', 0))}
-• P/Ativo Circ.Líq.: {fmt_num(s.get('p_ativo_circulante_liq', 0))}
-
-📊 RENTABILIDADE:
-• ROE: {fmt_pct(s.get('roe', 0))}
-• ROIC: {fmt_pct(s.get('roic', 0))}
-• Margem Líquida: {fmt_pct(s.get('margem_liquida', 0))}
-• Margem EBIT: {fmt_pct(s.get('margem_ebit', 0))}
-
-📈 DIVIDENDOS E CRESCIMENTO:
-• Dividend Yield: {fmt_pct(s.get('dividend_yield', 0))}
-• Crescimento Receita 5a: {fmt_pct(s.get('crescimento_receita_5a', 0))}
-
-💧 LIQUIDEZ E PATRIMÔNIO:
-• Liquidez Corrente: {fmt_num(s.get('liquidez_corrente', 0))}
-• Liquidez Média 2 meses: R$ {s.get('liquidez_2meses', 0):,.0f}/dia
-• Patrimônio Líquido: R$ {s.get('patrimonio_liquido', 0):,.0f}
-• Dív.Bruta/Patrimônio: {fmt_num(s.get('div_bruta_patrimonio', 0))}
-"""
-    
-    # ========================================
-    # SYSTEM PROMPT COMPLETO
-    # ========================================
-    system_prompt = f"""Você é o Analista de Investimentos IA do NorteAcoes - o mais completo assistente de análise fundamentalista de ações brasileiras.
-{filter_context}
-═══════════════════════════════════════════════════════
-📊 DADOS COMPLETOS DO MERCADO ({len(df)} ações {f'filtradas' if applied_filters else 'analisadas'})
-═══════════════════════════════════════════════════════
-
-🏆 TOP 10 AÇÕES POR SUPER SCORE:
-{top_10_text}
-
-═══════════════════════════════════════════════════════
-💧 TOP 10 POR LIQUIDEZ (Volume diário médio 2 meses):
-═══════════════════════════════════════════════════════
-{liq_text}
-
-═══════════════════════════════════════════════════════
-💰 TOP 10 POR DIVIDEND YIELD:
-═══════════════════════════════════════════════════════
-{dy_text}
-
-═══════════════════════════════════════════════════════
-📈 TOP 10 POR ROE (Rentabilidade):
-═══════════════════════════════════════════════════════
-{roe_text}
-
-═══════════════════════════════════════════════════════
-💸 TOP 10 MAIS BARATAS (menor P/L positivo):
-═══════════════════════════════════════════════════════
-{cheap_text}
-
-═══════════════════════════════════════════════════════
-🏢 TODOS OS SETORES E SUAS MELHORES AÇÕES:
-═══════════════════════════════════════════════════════
-{sector_summary}
-{specific_stock_info}
-
-═══════════════════════════════════════════════════════
-📚 GLOSSÁRIO DE INDICADORES (para você entender e explicar):
-═══════════════════════════════════════════════════════
-INDICADORES DE VALOR:
-• P/L (Preço/Lucro) - Quanto menor, mais barata. Ideal < 15.
-• P/VP (Preço/Valor Patrimonial) - Quanto menor, mais barata. Ideal < 1.5.
-• P/EBIT - Preço sobre lucro operacional.
-• EV/EBIT - Enterprise Value sobre lucro operacional. Menor = mais barato.
-• EV/EBITDA - Enterprise Value sobre EBITDA.
-• PSR (Price/Sales) - Preço sobre Receita.
-• P/Ativo - Preço sobre Ativo total.
-• P/Cap.Giro - Preço sobre Capital de Giro.
-
-INDICADORES DE RENTABILIDADE:
-• ROE (Return on Equity) - Retorno sobre patrimônio. Ideal > 15%.
-• ROIC (Return on Invested Capital) - Retorno sobre capital investido. Ideal > 15%.
-• Margem Líquida - Lucro líquido / Receita. Quanto maior, melhor.
-• Margem EBIT - Lucro operacional / Receita.
-
-INDICADORES DE DIVIDENDOS:
-• Dividend Yield (DY) - Dividendos pagos / Preço. Ideal > 6% para Bazin.
-
-INDICADORES DE LIQUIDEZ:
-• Liquidez Corrente - Ativo Circulante / Passivo Circulante. Ideal > 1.5.
-• Liquidez 2 Meses - Volume médio diário negociado (R$). Quanto maior, mais fácil comprar/vender.
-
-INDICADORES DE ENDIVIDAMENTO:
-• Dív.Bruta/Patrimônio - Quanto menor, menos endividada.
-
-INDICADORES DE CRESCIMENTO:
-• Crescimento Receita 5a - Crescimento da receita nos últimos 5 anos.
-
-ESTRATÉGIAS:
-• Graham: Foco em valor e segurança. Busca P/L baixo (<15), P/VP baixo (<1.5), boa liquidez.
-• Greenblatt (Magic Formula): Combina EV/EBIT baixo com ROIC alto.
-• Bazin: Foco em dividendos. DY > 6%, baixo endividamento, empresa sólida.
-• Qualidade: ROE alto (>15%), ROIC alto, margens saudáveis.
-
-REGRAS:
-1. Responda SEMPRE em português brasileiro, de forma clara e amigável.
-2. Use APENAS os dados fornecidos acima - não invente dados.
-3. Se o usuário perguntar sobre algo que não está nos dados, diga claramente.
-4. Formate números adequadamente: R$ 10,50 | 15,5% | Score 12,3
-6. Para rankings, use os dados fornecidos nas seções acima."""
-
-    try:
-        from groq import Groq
-        
-        api_key = os.getenv("GROQ_API_KEY")
-        if not api_key:
-            raise ValueError("GROQ_API_KEY não configurada")
-            
-        client = Groq(api_key=api_key)
-        
-        messages = [{"role": "system", "content": system_prompt}]
-        
-        # Add conversation history
-        for msg in request.history[-6:]:
-            messages.append({"role": msg.role, "content": msg.content})
-        
-        messages.append({"role": "user", "content": message})
-        
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=messages,
-            temperature=0.7,
-            max_tokens=1000
-        )
-        
-        return {"response": completion.choices[0].message.content}
-        
-    except Exception as e:
-        print(f"AI Error: {e}")
-        # Simple fallback when Groq fails
-        return simple_fallback_response(df)
+    return process_chat(request, df, session_id)
 
 
 
 # ============================================
 # PORTFOLIO GENERATOR
 # ============================================
+
 
 class PortfolioRequest(BaseModel):
     profile: str

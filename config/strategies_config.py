@@ -140,3 +140,28 @@ ESTRATEGIAS = {
 # Soma total de pesos para normalização
 SOMA_PESOS_FILTROS = sum(f['peso'] for f in FILTROS)
 SOMA_PESOS_ESTRATEGIAS = sum(e['peso'] for e in ESTRATEGIAS.values())
+
+
+# =================================================================
+#      CONFIGURAÇÕES GERAIS (RED FLAGS & REPORT)
+# =================================================================
+
+DEFAULT_RED_FLAGS = {
+    "div_trap_threshold": 0.15,      # 15% DY
+    "low_liq_threshold": 500000,     # R$ 500k/day
+    "high_debt_threshold": 3.0,      # 3x Debt/Equity
+    "low_margin_threshold": 0.03,    # 3% margin
+    "stagnant_growth_threshold": 0   # 0% = shrinking
+}
+
+DEFAULT_REPORT_SETTINGS = {
+    "top_n_stocks": 10,
+    "show_cyclical_warning": True,
+    "show_regulated_warning": True,
+    "show_stagnant_warning": True
+}
+
+DEFAULT_FILTER_SETTINGS = {
+    "dedup_enabled": True,
+    "liquidity_score_cap": 50.0
+}

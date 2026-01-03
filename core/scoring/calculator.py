@@ -6,16 +6,10 @@ import pandas as pd
 import numpy as np
 from typing import Dict, List
 
-from config.strategies_config import FILTROS, ESTRATEGIAS
+from config.strategies_config import FILTROS, ESTRATEGIAS, DEFAULT_RED_FLAGS
 
 # Default thresholds (fallback if config_service unavailable)
-DEFAULT_THRESHOLDS = {
-    "div_trap_threshold": 0.15,
-    "low_liq_threshold": 500000,
-    "high_debt_threshold": 3.0,
-    "low_margin_threshold": 0.03,
-    "stagnant_growth_threshold": 0
-}
+DEFAULT_THRESHOLDS = DEFAULT_RED_FLAGS
 
 
 def _get_thresholds() -> Dict:

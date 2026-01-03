@@ -61,47 +61,19 @@ def limpar_valores(df: pd.DataFrame, skip_cols: list = None) -> pd.DataFrame:
     if skip_cols is None:
         skip_cols = ["papel"]
     
-    print("🧹 Limpando e convertendo valores...")
+    print("🧹 Limpando e convertendo valores (v2 - Unified)...")
+    
+    from core.fundamentus.details import clean_value
     
     for col in df.columns:
         if col in skip_cols:
             continue
             
-        if df[col].dtype == object:
-            # Convert to string and strip whitespace
-            df[col] = df[col].astype(str).str.strip()
+        # Apply unified cleaner
+        df[col] = df[col].apply(clean_value)
             
-            # Replace standalone "-" (meaning null/no value) with empty string
-            # BUT preserve negative numbers like "-15.3"
-            df[col] = df[col].apply(lambda x: "" if x == "-" else x)
-            
-            # Replace Brazilian number format (1.234,56 -> 1234.56)
-            df[col] = (
-                df[col]
-                    .str.replace(".", "", regex=False)  # Remove thousand separator
-                    .str.replace(",", ".", regex=False)  # Decimal comma to point
-                    .str.replace("%", "", regex=False)   # Remove percent sign
-            )
-            
-            # Convert to numeric (preserves negative signs)
-            df[col] = pd.to_numeric(df[col], errors="coerce")
-            
-    # Normalize percentage columns -> Divide by 100
-    # Fundamentus returns 15.0 for 15.0%, but config expects 0.15
-    pct_cols = [
-        "dividend_yield", 
-        "margem_ebit", 
-        "margem_liquida", 
-        "roic", 
-        "roe", 
-        "crescimento_receita_5a"
-    ]
-    
-    for col in pct_cols:
-        if col in df.columns:
-            df[col] = df[col] / 100.0
-    
     return df
+
 
 
 def corrigir_p_ativo_e_psr(df: pd.DataFrame) -> pd.DataFrame:

@@ -26,14 +26,13 @@ const AIChat = dynamic(() => import('./components/AIChat'), { ssr: false });
 const SuggestedPortfolio = dynamic(() => import('./components/SuggestedPortfolio'), { ssr: false });
 const StockComparisonModal = dynamic(() => import('../components/StockComparisonModal'), { ssr: false });
 const ToxicStocks = dynamic(() => import('../components/ToxicStocks'), { ssr: false });
-// Keeping StockCard, Top3Podium as static imports for LCP optimization (above fold/critical)
+// Keeping StockCard as static import for LCP optimization (above fold/critical)
 import StockCard from '../components/StockCard';
 const PremiumFilters = dynamic(() => import('../components/PremiumFilters'), {
   loading: () => <div className="w-full h-32 bg-slate-900/50 border border-slate-800 rounded-xl mb-8 animate-pulse" />,
   ssr: false
 });
 import type { FilterValues } from '../components/PremiumFilters';
-import Top3Podium from '../components/Top3Podium';
 import { useAuth } from './contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -555,14 +554,6 @@ export default function Dashboard() {
                   </motion.div>
                 )}
 
-                {/* Top 3 Podium - Premium Only */}
-                {user?.is_premium && (
-                  <Top3Podium
-                    stocks={stocks}
-                    onSelectStock={setSelectedStock}
-                  />
-                )}
-
                 {/* Filters - Compact */}
                 <PremiumFilters
                   isPremium={user?.is_premium || false}
@@ -857,7 +848,7 @@ function StockModal({ stock, onClose, isPremium }: { stock: Stock, onClose: () =
             </div>
             <div className="bg-white/5 rounded-lg p-3 text-center">
               <p className="text-white/40 text-xs">DY</p>
-              <p className="font-bold">{stock.dividend_yield?.toFixed(2)}%</p>
+              <p className="font-bold">{stock.dividend_yield ? (stock.dividend_yield * 100).toFixed(2) : '0.00'}%</p>
             </div>
           </div>
         </div>
@@ -877,11 +868,11 @@ function StockModal({ stock, onClose, isPremium }: { stock: Stock, onClose: () =
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-white/40 text-xs">ROE</p>
-                <p className="font-bold">{stock.roe?.toFixed(2)}%</p>
+                <p className="font-bold">{stock.roe ? (stock.roe * 100).toFixed(2) : '0.00'}%</p>
               </div>
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-white/40 text-xs">ROIC</p>
-                <p className="font-bold">{stock.roic?.toFixed(2)}%</p>
+                <p className="font-bold">{stock.roic ? (stock.roic * 100).toFixed(2) : '0.00'}%</p>
               </div>
               <div className="bg-white/5 rounded-lg p-3 text-center">
                 <p className="text-white/40 text-xs">Liq. Corr.</p>
