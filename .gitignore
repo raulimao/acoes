@@ -71,7 +71,7 @@ services/report_service_OLD.py
 !frontend/**/tsconfig.json
 
 # Local Data cache
-data/
+data/*
 !data/technical_scores_cache.json
 ProjecaoAcoes/
 
