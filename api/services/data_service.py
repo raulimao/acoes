@@ -46,6 +46,10 @@ def get_market_data() -> pd.DataFrame:
                     
                     logger.info("cache_hit_db", rows=len(data_list), age=response.data.get("updated_at"))
                     
+                    # Ensure Global Sorting
+                    if 'super_score' in df.columns:
+                        df = df.sort_values(by='super_score', ascending=False)
+                    
                     # Update RAM
                     _ram_cache = df
                     _last_update = datetime.now()

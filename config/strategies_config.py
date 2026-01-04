@@ -104,6 +104,19 @@ FILTROS = [
         'peso': 1.0,
         'condicao': lambda v: 1.0 if v > 0.10 else 0.0
     },
+    {
+        'nome': 'crescimento_receita_5a',
+        'cabecalho': 'Check Cresc. 5a',
+        'peso': 1.5,
+        'condicao': lambda v: 1.0 if v > 0.10 else 0.5 if v > 0.0 else 0.0
+    },
+    {
+        'nome': 'oscilacao_5_anos',
+        'cabecalho': 'Check Consistência',
+        'peso': 1.0,
+        'condicao': lambda v: 1.0 if v > 0.50 else 0.5 if v > 0.0 else 0.0 
+        # >50% em 5 anos = ~8.5% aa (consistente)
+    }
 ]
 
 # =================================================================
@@ -132,8 +145,8 @@ ESTRATEGIAS = {
     'qualidade': {
         'cabecalho': 'Score Qualidade',
         'peso': 2.0,
-        'filtros': ['roe', 'margem_liquida', 'roic', 'div_bruta_patrimonio'],
-        'descricao': 'Qualidade + Rentabilidade'
+        'filtros': ['roe', 'margem_liquida', 'roic', 'div_bruta_patrimonio', 'crescimento_receita_5a'],
+        'descricao': 'Qualidade + Rentabilidade + Crescimento'
     }
 }
 

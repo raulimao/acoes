@@ -18,7 +18,8 @@ import {
   Target,
   Skull,
   Lock,
-  FileText
+  FileText,
+  Shield // Imported Shield Icon
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -26,6 +27,9 @@ const AIChat = dynamic(() => import('./components/AIChat'), { ssr: false });
 const SuggestedPortfolio = dynamic(() => import('./components/SuggestedPortfolio'), { ssr: false });
 const StockComparisonModal = dynamic(() => import('../components/StockComparisonModal'), { ssr: false });
 const ToxicStocks = dynamic(() => import('../components/ToxicStocks'), { ssr: false });
+const MonitorTab = dynamic(() => import('./components/MonitorTab'), { ssr: false });
+const StockDetailModal = dynamic(() => import('./components/StockDetailModal'), { ssr: false });
+const FusionTab = dynamic(() => import('./components/FusionTab'), { ssr: false });
 // Keeping StockCard as static import for LCP optimization (above fold/critical)
 import StockCard from '../components/StockCard';
 const PremiumFilters = dynamic(() => import('../components/PremiumFilters'), {
@@ -328,7 +332,9 @@ export default function Dashboard() {
   // Kill List: Removed History, Strategies, and Onboarding for simplified MVP
 
   const tabs = [
-    { id: 'overview', label: 'Ranking', icon: Zap },
+    { id: 'overview', label: 'Ranking (Fundamentus)', icon: Zap },
+    { id: 'fusion', label: 'Ação Perfeita', icon: Target },
+    { id: 'monitor', label: 'Monitor', icon: Shield },
     { id: 'anti-ranking', label: 'Ações Tóxicas', icon: Skull },
   ];
 
@@ -609,6 +615,32 @@ export default function Dashboard() {
               </motion.div>
             )}
 
+            {/* Fusion Tab */}
+            {activeTab === 'fusion' && (
+              <motion.div
+                key="fusion"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mt-4"
+              >
+                <FusionTab />
+              </motion.div>
+            )}
+
+            {/* Monitor Tab */}
+            {activeTab === 'monitor' && (
+              <motion.div
+                key="monitor"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="mt-4"
+              >
+                <MonitorTab />
+              </motion.div>
+            )}
+
             {/* Anti-Ranking Tab - Toxic Stocks */}
             {activeTab === 'anti-ranking' && (
               <motion.div
@@ -640,7 +672,7 @@ export default function Dashboard() {
 
 
       {selectedStock && typeof document !== 'undefined' && createPortal(
-        <StockModal stock={selectedStock} onClose={() => setSelectedStock(null)} isPremium={user?.is_premium || false} />,
+        <StockDetailModal ticker={selectedStock.papel} isOpen={true} onClose={() => setSelectedStock(null)} />,
         document.body
       )
       }
@@ -785,198 +817,4 @@ function StatCard({
 
 
 
-function StockModal({ stock, onClose, isPremium }: { stock: Stock, onClose: () => void, isPremium: boolean }) {
-  const getScoreColor = (score: number) => {
-    if (score >= 12) return 'text-green-400';
-    if (score >= 8) return 'text-yellow-400';
-    return 'text-red-400';
-  };
 
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.9, y: 20 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.9, y: 20 }}
-        className="card max-w-lg w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold gradient-text">{stock.papel}</h2>
-            <p className="text-white/50">{stock.setor || 'Sem setor'}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Basic Metrics - Always Visible */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-white/5 rounded-xl p-4">
-            <p className="text-white/40 text-sm mb-1">Cotação</p>
-            <p className="text-xl font-bold">R$ {stock.cotacao?.toFixed(2)}</p>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4">
-            <p className="text-white/40 text-sm mb-1">Super Score</p>
-            <p className={`text-xl font-bold ${getScoreColor(stock.super_score || 0)}`}>
-              {stock.super_score?.toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        {/* Basic Indicators - Visible */}
-        <div className="space-y-3">
-          <h3 className="font-semibold mb-2">Indicadores Básicos</h3>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-white/40 text-xs">P/L</p>
-              <p className="font-bold">{stock.p_l?.toFixed(2)}</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-white/40 text-xs">P/VP</p>
-              <p className="font-bold">{stock.p_vp?.toFixed(2)}</p>
-            </div>
-            <div className="bg-white/5 rounded-lg p-3 text-center">
-              <p className="text-white/40 text-xs">DY</p>
-              <p className="font-bold">{stock.dividend_yield ? (stock.dividend_yield * 100).toFixed(2) : '0.00'}%</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Advanced Metrics - Premium Only */}
-        <div className="mt-6 pt-6 border-t border-white/10 relative">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            Indicadores Avançados
-            {!isPremium && (
-              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Lock className="w-3 h-3" /> Premium
-              </span>
-            )}
-          </h3>
-
-          {isPremium ? (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-white/40 text-xs">ROE</p>
-                <p className="font-bold">{stock.roe ? (stock.roe * 100).toFixed(2) : '0.00'}%</p>
-              </div>
-              <div className="bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-white/40 text-xs">ROIC</p>
-                <p className="font-bold">{stock.roic ? (stock.roic * 100).toFixed(2) : '0.00'}%</p>
-              </div>
-              <div className="bg-white/5 rounded-lg p-3 text-center">
-                <p className="text-white/40 text-xs">Liq. Corr.</p>
-                <p className="font-bold">{stock.liquidez_corrente?.toFixed(2)}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="relative">
-              <div className="grid grid-cols-3 gap-3 blur-sm pointer-events-none">
-                <div className="bg-white/5 rounded-lg p-3 text-center">
-                  <p className="text-white/40 text-xs">ROE</p>
-                  <p className="font-bold">??%</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 text-center">
-                  <p className="text-white/40 text-xs">ROIC</p>
-                  <p className="font-bold">??%</p>
-                </div>
-                <div className="bg-white/5 rounded-lg p-3 text-center">
-                  <p className="text-white/40 text-xs">Liq. Corr.</p>
-                  <p className="font-bold">??</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Strategy Scores - Premium Only */}
-        <div className="mt-6 pt-6 border-t border-white/10">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
-            Scores por Estratégia
-            {!isPremium && (
-              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <Lock className="w-3 h-3" /> Premium
-              </span>
-            )}
-          </h3>
-
-          {isPremium ? (
-            <div className="grid grid-cols-4 gap-2">
-              <div className="text-center">
-                <p className="text-xs text-white/40">Graham</p>
-                <p className={`font-bold ${getScoreColor(stock.score_graham || 0)}`}>
-                  {stock.score_graham?.toFixed(1)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-white/40">Greenblatt</p>
-                <p className={`font-bold ${getScoreColor(stock.score_greenblatt || 0)}`}>
-                  {stock.score_greenblatt?.toFixed(1)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-white/40">Bazin</p>
-                <p className={`font-bold ${getScoreColor(stock.score_bazin || 0)}`}>
-                  {stock.score_bazin?.toFixed(1)}
-                </p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-white/40">Qualidade</p>
-                <p className={`font-bold ${getScoreColor(stock.score_qualidade || 0)}`}>
-                  {stock.score_qualidade?.toFixed(1)}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="relative">
-              <div className="grid grid-cols-4 gap-2 blur-sm pointer-events-none">
-                <div className="text-center">
-                  <p className="text-xs text-white/40">Graham</p>
-                  <p className="font-bold text-white/50">?</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-white/40">Greenblatt</p>
-                  <p className="font-bold text-white/50">?</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-white/40">Bazin</p>
-                  <p className="font-bold text-white/50">?</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xs text-white/40">Qualidade</p>
-                  <p className="font-bold text-white/50">?</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Upgrade CTA for Free Users */}
-        {!isPremium && (
-          <div className="mt-6 p-4 rounded-xl bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-6 h-6 text-yellow-400" />
-              <div className="flex-1">
-                <p className="font-bold text-white">Desbloquear Análise Completa</p>
-                <p className="text-sm text-white/60">ROE, ROIC, Scores por Estratégia e mais</p>
-              </div>
-              <button className="px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-black font-bold rounded-lg text-sm hover:scale-105 transition-transform">
-                Assinar
-              </button>
-            </div>
-          </div>
-        )}
-      </motion.div>
-    </motion.div>
-  );
-}

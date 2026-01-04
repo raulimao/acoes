@@ -59,3 +59,27 @@ update_*.py
 verify_*.py
 missing_sectors.txt
 services/report_service_OLD.py
+
+# Data & Analysis Dumps
+*.csv
+*.txt
+*.pkl
+*.json
+!frontend/package.json
+!frontend/package-lock.json
+!frontend/tsconfig.json
+!frontend/**/tsconfig.json
+
+# Local Data cache
+data/
+ProjecaoAcoes/
+
+# Temporary Scripts & Data
+scripts/*
+!scripts/run_daily_monitor.py
+!scripts/create_weekly_snapshot.py
+test_*.py
+inspect_*.csv
+
+# Database Migrations (Ignored per user request)
+database/*.sql

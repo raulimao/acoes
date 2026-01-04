@@ -38,9 +38,17 @@ def check_red_flags(row: pd.Series) -> List[str]:
     if 0 < margem < margin_threshold:
         flags.append('LOW_MARGIN')
         
-    # 3. High Debt
+    # 3. High Debt (Sector Aware)
     div_pat = row.get('div_bruta_patrimonio', 0)
-    if div_pat > thresholds.get('high_debt_threshold', 3.0):
+    setor = str(row.get('setor', '')).lower()
+    
+    # Financial sectors naturally utilise leverage
+    is_financial = any(kw in setor for kw in ['banco', 'segur', 'financeir', 'intermedi'])
+    
+    # Threshold handling: If financial, ignore debt flag OR use a much higher threshold
+    debt_threshold = thresholds.get('high_debt_threshold', 3.0)
+    
+    if not is_financial and div_pat > debt_threshold:
         flags.append('HIGH_DEBT')
         
     # 4. Low Liquidity
@@ -51,12 +59,12 @@ def check_red_flags(row: pd.Series) -> List[str]:
     # ====== SECTOR-BASED FLAGS ======
     
     # 5. Stagnant Company (Negative Growth)
+    # Only flag if we actually have the data (not 0 exactly, which usually means missing)
     growth = row.get('crescimento_receita_5a', 0)
     if growth < thresholds.get('stagnant_growth_threshold', 0):
         flags.append('STAGNANT')
     
     # 6. Cyclical Sector Warning
-    setor = str(row.get('setor', '')).lower()
     cyclical_keywords = ['mineração', 'mineracao', 'petróleo', 'petroleo', 
                          'siderurgia', 'metalurgia', 'papel', 'celulose', 'commodities']
     if any(kw in setor for kw in cyclical_keywords):

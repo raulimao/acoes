@@ -47,6 +47,34 @@ def renomear_colunas(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+
+def clean_value(x):
+    """
+    Clean and convert value to float.
+    Handles percentages, currency formatting, and NaN.
+    """
+    if pd.isna(x):
+        return 0.0
+    
+    s = str(x).strip()
+    
+    if s in ["-", "N/A", ""]:
+        return 0.0
+        
+    try:
+        # Remove % and convert
+        is_pct = "%" in s
+        s = s.replace("%", "").replace(".", "").replace(",", ".")
+        val = float(s)
+        
+        if is_pct:
+            val /= 100
+            
+        return val
+    except ValueError:
+        return 0.0
+
+
 def limpar_valores(df: pd.DataFrame, skip_cols: list = None) -> pd.DataFrame:
     """
     Clean and convert string values to numeric.
@@ -63,13 +91,11 @@ def limpar_valores(df: pd.DataFrame, skip_cols: list = None) -> pd.DataFrame:
     
     print("🧹 Limpando e convertendo valores (v2 - Unified)...")
     
-    from core.fundamentus.details import clean_value
-    
     for col in df.columns:
         if col in skip_cols:
             continue
             
-        # Apply unified cleaner
+        # Apply local cleaner
         df[col] = df[col].apply(clean_value)
             
     return df

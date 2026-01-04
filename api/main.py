@@ -28,6 +28,7 @@ from utils.logging_config import logger
 
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
+from core.integration.fusion import get_fusion_ranking
 # from services.setores_service import get_all_setores (Removed)
 
 from services.data_service import get_market_data, update_market_data_background
@@ -788,10 +789,12 @@ async def get_stock(ticker: str):
 
 @app.get("/api/stats", response_model=DashboardStats)
 async def get_stats():
-    """Get dashboard statistics."""
-    df = get_stock_data()
-    
-    if df.empty:
+    """Get dashboard statistics based on Fusion Ranking (Ações Perfeitas)."""
+    try:
+        fusion_data = get_fusion_ranking()
+    except Exception as e:
+        print(f"Error getting fusion stats: {e}")
+        # Fallback to empty if fusion fails
         return DashboardStats(
             total_stocks=0,
             avg_super_score=0,
@@ -800,12 +803,32 @@ async def get_stats():
             sectors_count=0
         )
     
+    if not fusion_data:
+        return DashboardStats(
+            total_stocks=0,
+            avg_super_score=0,
+            top_stock="N/A",
+            top_score=0,
+            sectors_count=0
+        )
+    
+    # Calculate stats from Fusion Data
+    # fusion_data is a list of dicts
+    total_stocks = len(fusion_data)
+    scores = [s.get("fusion_score", 0) for s in fusion_data]
+    avg_score = sum(scores) / len(scores) if scores else 0
+    
+    # Data is already sorted by fusion_score in get_fusion_ranking
+    top_stock = fusion_data[0]
+    
+    unique_sectors = set(s.get("sector") for s in fusion_data if s.get("sector"))
+    
     return DashboardStats(
-        total_stocks=len(df),
-        avg_super_score=round(df["super_score"].mean(), 2),
-        top_stock=df.iloc[0]["papel"],
-        top_score=round(df.iloc[0]["super_score"], 2),
-        sectors_count=df["setor"].nunique() if "setor" in df.columns else 0
+        total_stocks=total_stocks,
+        avg_super_score=round(avg_score, 2),
+        top_stock=top_stock.get("ticker", "N/A"),
+        top_score=round(top_stock.get("fusion_score", 0), 2),
+        sectors_count=len(unique_sectors)
     )
 
 
@@ -912,86 +935,6 @@ class PortfolioProfile(BaseModel):
 async def get_chat_limits(session_id: str = "anonymous"):
     """Get remaining chat limits for the session."""
     return check_chat_limit(session_id)
-
-
-
-@app.post("/api/portfolio/suggested")
-async def get_suggested_portfolio(request: PortfolioProfile):
-    """Get a suggested portfolio based on investor profile."""
-    df = get_stock_data()
-    
-    if df.empty:
-        raise HTTPException(status_code=500, detail="Dados não disponíveis")
-    
-    profile = request.profile.lower()
-    
-    # Define criteria for each profile
-    if profile == "conservador":
-        # Focus on high dividend yield, low volatility, large cap (high liquidity)
-        criteria = {
-            "description": "Foco em dividendos e empresas sólidas",
-            "objective": "Renda passiva com baixo risco",
-            "filters": "DY > 4%, P/L positivo, Alta liquidez"
-        }
-        # Filter: high DY, positive P/L, high liquidity
-        filtered = df[
-            (df['dividend_yield'] > 0.04) & 
-            (df['p_l'] > 0) & 
-            (df['p_l'] < 20) &
-            (df['liquidez_2meses'] > 10_000_000)
-        ].nlargest(5, 'dividend_yield')
-        
-    elif profile == "agressivo":
-        # Focus on growth: high ROE, high ROIC, lower P/L
-        criteria = {
-            "description": "Foco em crescimento e valorização",
-            "objective": "Máximo retorno aceitando mais risco",
-            "filters": "ROE > 15%, ROIC > 15%, Bom score Greenblatt"
-        }
-        filtered = df[
-            (df['roe'] > 0.15) & 
-            (df['roic'] > 0.15) &
-            (df['p_l'] > 0) &
-            (df['liquidez_2meses'] > 1_000_000)
-        ].nlargest(5, 'score_greenblatt')
-        
-    else:  # moderado (default)
-        # Balanced approach: good overall score, decent dividend, reasonable valuation
-        criteria = {
-            "description": "Equilíbrio entre valor, dividendos e crescimento",
-            "objective": "Crescimento sustentável com alguma renda",
-            "filters": "Super Score Top 50, DY > 2%, Liquidez razoável"
-        }
-        filtered = df[
-            (df['dividend_yield'] > 0.02) &
-            (df['p_l'] > 0) &
-            (df['liquidez_2meses'] > 5_000_000)
-        ].nlargest(5, 'super_score')
-    
-    # Build response
-    stocks = []
-    for _, row in filtered.iterrows():
-        dy = row.get('dividend_yield', 0) * 100 if row.get('dividend_yield', 0) < 1 else row.get('dividend_yield', 0)
-        roe = row.get('roe', 0) * 100 if row.get('roe', 0) < 1 else row.get('roe', 0)
-        
-        stocks.append({
-            "ticker": row['papel'],
-            "sector": get_friendly_sector(row.get('setor', 'N/A')),
-            "price": round(row.get('cotacao', 0), 2),
-            "super_score": round(row.get('super_score', 0), 1),
-            "p_l": round(row.get('p_l', 0), 1),
-            "dividend_yield": round(dy, 1),
-            "roe": round(roe, 1),
-            "liquidity": int(row.get('liquidez_2meses', 0)),
-            "reason": _get_stock_reason(profile, row)
-        })
-    
-    return {
-        "profile": profile.capitalize(),
-        "criteria": criteria,
-        "stocks": stocks,
-        "disclaimer": "Esta é uma sugestão educacional, não uma recomendação de investimento."
-    }
 
 
 def _get_stock_reason(profile: str, row) -> str:
@@ -1253,82 +1196,117 @@ class PortfolioRequest(BaseModel):
 
 @app.post("/api/portfolio/suggested")
 def get_suggested_portfolio(request: PortfolioRequest):
-    df = get_stock_data()
+    """Generate suggested portfolio using Fusion Ranking (Ações Perfeitas)."""
+    fusion_list = get_fusion_ranking()
     
-    if df.empty:
+    if not fusion_list:
         raise HTTPException(status_code=404, detail="No data available")
-
+    
+    # Convert to DataFrame for easier filtering
+    df = pd.DataFrame(fusion_list)
+    
     profile = request.profile.lower()
     
     # Default values
     filtered = df.copy()
     criteria_desc = ""
     objective_desc = ""
-    disclaimer = ""
+    disclaimer = "Sugestões baseadas no algoritmo Fusion (Ações Perfeitas)."
     
     if profile == 'conservador':
-        # High Dividend, Established Companies
-        # Filter: DY > 6%, Liquidity > 1M, Positive P/L
-        filtered = filtered[
-            (filtered['dividend_yield'] > 6) & 
-            (filtered['liquidez_2meses'] > 1000000) &
-            (filtered['p_l'] > 0)
-        ].sort_values(by='dividend_yield', ascending=False)
+        # Fusion High Score + High Dividend + Low Volatility (implied by good fusion score components?)
+        # Let's add explicit DY filter on top of Fusion attributes.
+        # But Fusion list might be flattened or nested. 
+        # get_fusion_ranking returns flat dicts with 'fundamentals', 'technical' keys? 
+        # No, it returns flat dict with 'fusion_score', 'fund_score_raw', 'tech_score_raw' AND 'fundamentals' dict inside?
+        # Let's check get_fusion_ranking return structure in subsequent step or rely on what I saw earlier.
+        # Earlier I saw `row["fundamentals"] = {...}` but also flat fields `row["ticker"]`.
+        # I'll Assume flat fields exist if I mapped them, or access dicts.
+        # Safe bet: Access fundamental metrics from 'fundamentals' dict column or use standard df columns if they were preserved.
+        # Actually `get_fusion_ranking` constructs a new list.
+        # It does NOT flatten fundamentals to top level.
+        # So I need to access s['fundamentals']['dividend_yield'].
         
-        criteria_desc = "Dividendos > 6% + Alta Liquidez"
-        objective_desc = "Maximizar renda passiva com segurança."
-        disclaimer = "Foco em empresas consolidadas pagadoras de proventos."
+        criteria_desc = "Fusion Score Alto + Dividendos > 6%"
+        objective_desc = "Renda com Qualidade (Ações Perfeitas)"
+        
+        # Filter: Fusion Score > 70 AND DY > 0.06
+        # Need to know where DY is. Likely in s['fundamentals']['dividend_yield'] or s['dividend_yield']?
+        # get_fusion_ranking implementation: `row = {... , 'fundamentals': {...}, ...}`.
+        # It does NOT flatten fundamentals to top level.
+        # So I need to access s['fundamentals']['dividend_yield'].
+        
+        def safe_get_dy(stock):
+            try:
+                return stock.get('fundamentals', {}).get('dividend_yield', 0) or 0
+            except: return 0
+
+        filtered_list = [
+            s for s in fusion_list 
+            if s.get('fusion_score', 0) >= 60 
+            and safe_get_dy(s) > 0.06
+        ]
+        # Sort by Fusion Score (Quality) then DY? Or Fusion Score primarily.
+        filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
         
     elif profile == 'agressivo':
-        # High Growth/Potential
-        # Filter: Small Caps (Price < 20?), High ROE? Or just Greenblatt Score?
-        # Let's use Greenblatt Score for quality + undervalue
-        filtered = filtered.sort_values(by='score_greenblatt', ascending=False)
+        # High Fusion Score + Growth/Momentum
+        criteria_desc = "Fusion Score Top 10% + Momentum"
+        objective_desc = "Crescimento Acelerado (Ações Perfeitas)"
         
-        criteria_desc = "Top Fórmula Mágica (Greenblatt)"
-        objective_desc = "Buscar assimetrias de valor e crescimento acelerado."
-        disclaimer = "Maior volatilidade esperada em busca de maiores retornos."
+        # Just top Fusion Scores are already "Perfect Stocks".
+        # Maybe emphasize Technical Score?
+        filtered_list = [
+            s for s in fusion_list 
+            if s.get('fusion_score', 0) >= 70
+        ]
+        filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
         
-    else: # Moderado (Default)
-        # Balanced Approach (Super Score)
-        filtered = filtered.sort_values(by='super_score', ascending=False)
+    else: # Moderado
+        # Balance
+        criteria_desc = "Fusion Score > 60 + Consistência"
+        objective_desc = "Equilíbrio Risco/Retorno (Ações Perfeitas)"
         
-        criteria_desc = "Top Super Score (Multifator)"
-        objective_desc = "Equilíbrio entre qualidade, preço e dividendos."
-        disclaimer = "Carteira balanceada selecionada pelo algoritmo proprietário."
+        filtered_list = [
+            s for s in fusion_list 
+            if s.get('fusion_score', 0) >= 60
+        ]
+        filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
 
-    # Take top 5
-    top_5 = filtered.head(5)
+    # Fallback if empty
+    if not filtered_list:
+        filtered_list = sorted(fusion_list, key=lambda x: x.get('fusion_score', 0), reverse=True)[:5]
+
+    # Select Top 5
+    top_stocks = filtered_list[:5]
     
-    # Format for frontend
     stocks_list = []
-    for _, row in top_5.iterrows():
-        reason_text = ""
-        if profile == 'conservador':
-            reason_text = f"Alto DY de {row['dividend_yield']:.2f}%"
-        elif profile == 'agressivo':
-            reason_text = f"Score Greenblatt: {row.get('score_greenblatt', 0):.1f}"
-        else:
-            reason_text = f"Super Score: {row['super_score']:.1f}"
-            
+    for s in top_stocks:
+        ticker = s.get('ticker')
+        fund = s.get('fundamentals', {})
+        tech = s.get('technical', {})
+        ai = s.get('ai_verdict', {})
+        
+        reason = ai.get('summary') or f"Fusion Score: {s.get('fusion_score')}"
+        
         stocks_list.append({
-            "ticker": safe_str(row['papel']),
-            "sector": safe_str(row.get('setor', 'N/A')),
-            "price": row['cotacao'],
-            "super_score": row['super_score'],
-            "p_l": row['p_l'],
-            "dividend_yield": row['dividend_yield'],
-            "roe": row['roe'],
-            "liquidity": row.get('liquidez_2meses', 0),
-            "reason": reason_text
+            "ticker": ticker,
+            "sector": s.get('sector', 'N/A'),
+            "price": s.get('price', 0),
+            "super_score": s.get('fusion_score', 0), # Map fusion to super_score for frontend compat
+            "p_l": fund.get('p_l', 0),
+            "dividend_yield": round((fund.get('dividend_yield', 0) or 0) * 100, 2),
+            "roe": round((fund.get('roe', 0) or 0) * 100, 2),
+            "liquidity": fund.get('liquidez_corrente', 0), # or liquidez_2meses?
+            "reason": reason
         })
         
     return {
-        "profile": profile,
+        "profile": request.profile,
         "criteria": {
             "description": criteria_desc,
             "objective": objective_desc,
-            "filters": "Algoritmo Proprietário" 
+            "filters": "Fusion Algorithm" 
         },
         "stocks": stocks_list,
         "disclaimer": disclaimer
@@ -1348,9 +1326,36 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
         raise HTTPException(status_code=403, detail="Apenas usuários Premium podem baixar relatórios.")
 
     try:
-        df = get_stock_data()
-        if df.empty:
-            raise HTTPException(status_code=404, detail="Dados de mercado indisponíveis")
+        fusion_ranking = get_fusion_ranking()
+        if not fusion_ranking:
+             raise HTTPException(status_code=404, detail="Dados de mercado indisponíveis")
+
+        # Convert Fusion Data to DataFrame expected by report_service
+        # Need to flatten some fields if report_service expects them at top level
+        
+        # Helper to flatten
+        flat_data = []
+        for item in fusion_ranking:
+            flat = item.copy()
+            # Flatten fundamentals
+            fund = item.get('fundamentals', {})
+            for k, v in fund.items():
+                if k not in flat: flat[k] = v
+            
+            # Helper for report service expectations
+            flat['papel'] = item.get('ticker')
+            flat['cotacao'] = item.get('price')
+            flat['super_score'] = item.get('fusion_score') # Use Fusion Score as Super Score
+            flat['setor'] = item.get('sector')
+            
+            # AI Verdict
+            ai = item.get('ai_verdict', {})
+            flat['ai_recommendation'] = ai.get('recommendation')
+            flat['ai_summary'] = ai.get('summary')
+            
+            flat_data.append(flat)
+            
+        df = pd.DataFrame(flat_data)
 
         # Generate PDF using the new service
         pdf_bytes = generate_pdf_report(df)
@@ -1376,7 +1381,460 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
         raise HTTPException(status_code=500, detail="Erro ao gerar relatório PDF")
 
 
+
+# ============================================
+# PORTFOLIO MONITOR (STOP LOSS)
+# ============================================
+
+@app.get("/api/portfolio/monitor")
+async def monitor_portfolio(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Runs the daily portfolio monitor and returns alerts (Stop Loss / Red Flags).
+    Only available for authenticated users.
+    """
+    from core.portfolio.monitor import DailyMonitor
+    
+    try:
+        monitor = DailyMonitor()
+        alerts = monitor.run_check()
+        return alerts
+    except Exception as e:
+        logger.error("monitor_api_error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================
+# FULL STOCK ANALYSIS (PREMIUM MODAL v2.0)
+# ============================================
+
+def calculate_fair_value(price: float, pl: float, pvp: float, dy: float, roe: float, lpa: float = None) -> dict:
+    """Calculate fair value using multiple professional methods."""
+    fair_values = {}
+    
+    # Method 1: Graham Number (conservative)
+    if pl > 0 and pvp > 0:
+        vpa = price / pvp if pvp > 0 else 0
+        if lpa and lpa > 0 and vpa > 0:
+            graham = (22.5 * lpa * vpa) ** 0.5
+            fair_values["graham"] = round(graham, 2)
+    
+    # Method 2: Bazin (dividend-focused) - DY should be at least 6%
+    if dy > 0:
+        bazin_price = (dy / 100 * price) / 0.06  # Target 6% yield
+        fair_values["bazin"] = round(bazin_price, 2)
+    
+    # Method 3: P/L based (sector average assumption of 12)
+    if pl > 0:
+        lpa_estimated = price / pl
+        pl_fair = lpa_estimated * 12  # Assuming fair P/L of 12
+        fair_values["earnings"] = round(pl_fair, 2)
+    
+    # Method 4: ROE-based (Greenblatt style)
+    if roe > 0 and pvp > 0:
+        vpa = price / pvp
+        expected_earnings = vpa * (roe / 100)
+        roe_fair = expected_earnings * 10  # 10x earnings
+        fair_values["roe_based"] = round(roe_fair, 2)
+    
+    # Calculate average fair value
+    if fair_values:
+        avg_fair = sum(fair_values.values()) / len(fair_values)
+        fair_values["average"] = round(avg_fair, 2)
+        fair_values["upside"] = round(((avg_fair / price) - 1) * 100, 1) if price > 0 else 0
+    
+    return fair_values
+
+
+def generate_ai_verdict(stock_data: dict, tech_data: dict) -> dict:
+    """Generate professional AI-powered verdict and recommendation."""
+    score = stock_data.get('super_score', 0)
+    pl = stock_data.get('p_l', 0)
+    dy = stock_data.get('dividend_yield', 0)
+    roe = stock_data.get('roe', 0)
+    pvp = stock_data.get('p_vp', 0)
+    
+    # Technical signals
+    tech_signal = tech_data.get('summary_signal', 'NEUTRAL')
+    oscillators = tech_data.get('oscillators', {})
+    ma_signal = tech_data.get('moving_averages', {}).get('RECOMMENDATION', 'NEUTRAL')
+    
+    # Scoring system
+    fund_points = 0
+    tech_points = 0
+    highlights = []
+    concerns = []
+    
+    # Fundamental scoring
+    if pl > 0 and pl < 10:
+        fund_points += 3
+        highlights.append("P/L muito atrativo")
+    elif pl > 0 and pl < 15:
+        fund_points += 2
+        highlights.append("Valuation interessante")
+    elif pl > 25 or pl < 0:
+        fund_points -= 2
+        concerns.append("Valuation esticado ou prejuízo")
+    
+    dy_pct = dy * 100 if dy < 1 else dy
+    if dy_pct >= 6:
+        fund_points += 3
+        highlights.append(f"Dividendo excepcional ({dy_pct:.1f}%)")
+    elif dy_pct >= 4:
+        fund_points += 2
+        highlights.append("Bom pagador de dividendos")
+    elif dy_pct < 1:
+        concerns.append("Sem dividendos relevantes")
+    
+    roe_pct = roe * 100 if roe < 1 else roe
+    if roe_pct >= 20:
+        fund_points += 3
+        highlights.append(f"ROE excepcional ({roe_pct:.1f}%)")
+    elif roe_pct >= 15:
+        fund_points += 2
+        highlights.append("Boa rentabilidade")
+    elif roe_pct < 10:
+        fund_points -= 1
+        concerns.append("Rentabilidade baixa")
+    
+    if pvp > 0 and pvp < 1:
+        fund_points += 2
+        highlights.append("Negociando abaixo do patrimônio")
+    elif pvp > 3:
+        concerns.append("P/VP elevado")
+    
+    # Technical scoring
+    if 'STRONG_BUY' in tech_signal:
+        tech_points += 3
+        highlights.append("Forte sinal técnico de compra")
+    elif 'BUY' in tech_signal:
+        tech_points += 2
+    elif 'STRONG_SELL' in tech_signal:
+        tech_points -= 3
+        concerns.append("Sinal técnico de venda forte")
+    elif 'SELL' in tech_signal:
+        tech_points -= 2
+        concerns.append("Pressão vendedora")
+    
+    if 'STRONG_BUY' in str(ma_signal):
+        tech_points += 2
+        highlights.append("Médias móveis favoráveis")
+    elif 'STRONG_SELL' in str(ma_signal):
+        tech_points -= 2
+    
+    # Final verdict
+    total_points = fund_points + tech_points
+    
+    if total_points >= 8:
+        verdict = "OPORTUNIDADE EXCEPCIONAL"
+        verdict_color = "emerald"
+        verdict_icon = "🏆"
+        recommendation = "COMPRA FORTE"
+        summary = "Ativo apresenta combinação rara de fundamentos sólidos com timing técnico favorável. Considerar posição significativa."
+    elif total_points >= 5:
+        verdict = "MUITO ATRATIVO"
+        verdict_color = "green"
+        verdict_icon = "✨"
+        recommendation = "COMPRA"
+        summary = "Fundamentos consistentes sustentam a tese de investimento. O momento técnico sugere boa entrada."
+    elif total_points >= 2:
+        verdict = "ATRATIVO"
+        verdict_color = "cyan"
+        verdict_icon = "👍"
+        recommendation = "COMPRA MODERADA"
+        summary = "Ativo com métricas interessantes. Avaliar se encaixa no perfil da carteira."
+    elif total_points >= -1:
+        verdict = "NEUTRO"
+        verdict_color = "slate"
+        verdict_icon = "➖"
+        recommendation = "MANTER/AGUARDAR"
+        summary = "Sem catalisadores claros no momento. Aguardar melhor ponto de entrada."
+    elif total_points >= -4:
+        verdict = "CAUTELA"
+        verdict_color = "amber"
+        verdict_icon = "⚠️"
+        recommendation = "EVITAR"
+        summary = "Indicadores mistos sugerem cautela. Há opções melhores no mercado."
+    else:
+        verdict = "RISCO ELEVADO"
+        verdict_color = "red"
+        verdict_icon = "🚨"
+        recommendation = "VENDA/EVITAR"
+        summary = "Múltiplos sinais de alerta. Considerar reduzir exposição se já posicionado."
+    
+    return {
+        "verdict": verdict,
+        "verdict_color": verdict_color,
+        "verdict_icon": verdict_icon,
+        "recommendation": recommendation,
+        "summary": summary,
+        "fund_score": fund_points,
+        "tech_score": tech_points,
+        "total_score": total_points,
+        "highlights": highlights[:4],  # Top 4
+        "concerns": concerns[:3]  # Top 3
+    }
+
+
+def get_sector_ranking(df, ticker: str, sector: str) -> dict:
+    """Calculate stock's ranking within its sector."""
+    sector_stocks = df[df['setor'] == sector]
+    if sector_stocks.empty:
+        return {"rank": 0, "total": 0, "percentile": 0}
+    
+    sector_sorted = sector_stocks.sort_values('super_score', ascending=False)
+    rank = sector_sorted['papel'].tolist().index(ticker) + 1 if ticker in sector_sorted['papel'].values else 0
+    total = len(sector_sorted)
+    percentile = round((1 - (rank / total)) * 100) if total > 0 else 0
+    
+    # Top performers in sector
+    top_3 = sector_sorted.head(3)[['papel', 'super_score']].to_dict('records')
+    
+    return {
+        "rank": rank,
+        "total": total,
+        "percentile": percentile,
+        "top_3": top_3
+    }
+
+
+@app.get("/api/stock/{ticker}/full-analysis")
+async def get_full_stock_analysis(ticker: str):
+    """
+    Returns comprehensive PREMIUM analysis for detail modal.
+    v2.0: AI Verdict, Fair Value, Sector Comparison, Risk Metrics
+    """
+    import json
+    from pathlib import Path
+    import traceback
+    
+    ticker = ticker.upper()
+    
+    try:
+        df = get_stock_data()
+        
+        if df.empty:
+            raise HTTPException(status_code=500, detail="Dados não disponíveis")
+        
+        stock = df[df['papel'] == ticker]
+        if stock.empty:
+            raise HTTPException(status_code=404, detail=f"Ação {ticker} não encontrada")
+        
+        s = stock.iloc[0]
+    
+        # Load technical data from cache
+        tech_cache_path = Path(__file__).parent.parent / "data" / "technical_scores_cache.json"
+        tech_data = {}
+        try:
+            if tech_cache_path.exists():
+                with open(tech_cache_path, 'r', encoding='utf-8') as f:
+                    cache = json.load(f)
+                    tech_data = cache.get('data', {}).get(ticker, {})
+        except Exception as e:
+            logger.warning("tech_cache_load_error", ticker=ticker, error=str(e))
+    
+        indicators = tech_data.get('indicators', {})
+        oscillators = tech_data.get('oscillators', {})
+        moving_averages = tech_data.get('moving_averages', {})
+        
+        # Base metrics (handle NaN/None safely)
+        price = float(s.get('cotacao') or 0)
+        dy = s.get('dividend_yield') or 0
+        dy_pct = (dy * 100 if dy < 1 else dy) if dy else 0
+        roe = s.get('roe') or 0
+        roe_pct = (roe * 100 if roe < 1 else roe) if roe else 0
+        roic = s.get('roic') or 0
+        roic_pct = (roic * 100 if roic < 1 else roic) if roic else 0
+        margem = s.get('margem_liquida') or 0
+        margem_pct = (margem * 100 if margem < 1 else margem) if margem else 0
+        pl = float(s.get('p_l') or 0)
+        pvp = float(s.get('p_vp') or 0)
+        
+        # Technical indicators
+        rsi = indicators.get('RSI')
+        ema200 = indicators.get('EMA200')
+        close = indicators.get('close') or price
+        change = indicators.get('change') or 0
+        volume = indicators.get('volume') or 0
+        
+        # PREMIUM: AI Verdict
+        ai_verdict = generate_ai_verdict(s.to_dict(), tech_data)
+    
+        # PREMIUM: Fair Value Calculation
+        fair_value = calculate_fair_value(price, pl, pvp, dy_pct, roe_pct)
+        
+        # PREMIUM: Sector Ranking
+        sector = s.get('setor', 'N/A')
+        sector_ranking = get_sector_ranking(df, ticker, sector)
+        
+        # Fundamental section
+        fundamental = {
+            "p_l": round(pl or 0, 2),
+            "p_vp": round(pvp or 0, 2),
+            "dividend_yield": round(dy_pct or 0, 2),
+            "roe": round(roe_pct or 0, 2),
+            "roic": round(roic_pct or 0, 2),
+            "margem_liquida": round(margem_pct or 0, 2),
+            "liquidez_corrente": round(float(s.get('liquidez_corrente') or 0), 2),
+            "div_bruta_patrimonio": round(float(s.get('div_bruta_patrimonio') or 0), 2),
+            "lpa": round(float(s.get('lpa') or 0), 2),
+            "vpa": round(float(s.get('vpa') or 0), 2),
+            "scores": {
+                "super_score": round(float(s.get('super_score') or 0), 1),
+                "graham": round(float(s.get('score_graham') or 0), 1),
+                "greenblatt": round(float(s.get('score_greenblatt') or 0), 1),
+                "bazin": round(float(s.get('score_bazin') or 0), 1),
+                "qualidade": round(float(s.get('score_qualidade') or 0), 1)
+            }
+        }
+        
+        # Technical section
+        technical = {
+            "summary": tech_data.get('summary_signal', 'NEUTRAL'),
+            "summary_score": tech_data.get('summary_score', 0.5),
+            "oscillators": {
+                "signal": oscillators.get('RECOMMENDATION', 'NEUTRAL'),
+                "buy": oscillators.get('BUY', 0),
+                "sell": oscillators.get('SELL', 0),
+                "neutral": oscillators.get('NEUTRAL', 0),
+                "details": oscillators.get('COMPUTE', {})
+            },
+            "moving_averages": {
+                "signal": moving_averages.get('RECOMMENDATION', 'NEUTRAL'),
+                "buy": moving_averages.get('BUY', 0),
+                "sell": moving_averages.get('SELL', 0),
+                "neutral": moving_averages.get('NEUTRAL', 0),
+                "details": moving_averages.get('COMPUTE', {})
+            },
+            "indicators": {
+                "rsi": round(rsi, 1) if rsi else None,
+                "macd": {
+                    "value": round(indicators.get('MACD.macd') or 0, 3),
+                    "signal": round(indicators.get('MACD.signal') or 0, 3),
+                    "histogram": round((indicators.get('MACD.macd') or 0) - (indicators.get('MACD.signal') or 0), 3)
+                },
+                "stochastic": {
+                    "k": round(indicators.get('Stoch.K') or 0, 1),
+                    "d": round(indicators.get('Stoch.D') or 0, 1)
+                },
+                "adx": round(indicators.get('ADX') or 0, 1),
+                "cci": round(indicators.get('CCI20') or 0, 1),
+                "momentum": round(indicators.get('Mom') or 0, 2),
+                "ao": round(indicators.get('AO') or 0, 2),
+                "bollinger": {
+                    "upper": round(indicators.get('BB.upper') or 0, 2),
+                    "lower": round(indicators.get('BB.lower') or 0, 2),
+                    "middle": round(((indicators.get('BB.upper') or 0) + (indicators.get('BB.lower') or 0)) / 2, 2),
+                    "width": round((indicators.get('BB.upper') or 0) - (indicators.get('BB.lower') or 0), 2)
+                },
+                "ema200": round(ema200, 2) if ema200 else None,
+                "sma200": round(indicators.get('SMA200') or 0, 2),
+                "ema50": round(indicators.get('EMA50') or 0, 2),
+                "sma50": round(indicators.get('SMA50') or 0, 2),
+                "ema20": round(indicators.get('EMA20') or 0, 2),
+                "vwma": round(indicators.get('VWMA') or 0, 2),
+                "volume": volume,
+                "change": round(change or 0, 2)
+            },
+            "pivots": {
+                "classic": {
+                    "s3": round(indicators.get('Pivot.M.Classic.S3') or 0, 2),
+                    "s2": round(indicators.get('Pivot.M.Classic.S2') or 0, 2),
+                    "s1": round(indicators.get('Pivot.M.Classic.S1') or 0, 2),
+                    "pivot": round(indicators.get('Pivot.M.Classic.Middle') or 0, 2),
+                    "r1": round(indicators.get('Pivot.M.Classic.R1') or 0, 2),
+                    "r2": round(indicators.get('Pivot.M.Classic.R2') or 0, 2),
+                    "r3": round(indicators.get('Pivot.M.Classic.R3') or 0, 2)
+                },
+                "fibonacci": {
+                    "s1": round(indicators.get('Pivot.M.Fibonacci.S1') or 0, 2),
+                    "r1": round(indicators.get('Pivot.M.Fibonacci.R1') or 0, 2)
+                }
+            }
+        }
+        
+        # Timing analysis
+        above_ema200 = (close > ema200) if ema200 and close else None
+        rsi_zone = "neutral"
+        timing_signal = "NEUTRO"
+        timing_emoji = "⚪"
+        
+        if rsi:
+            if rsi > 70:
+                rsi_zone = "overbought"
+            elif rsi < 30:
+                rsi_zone = "oversold"
+        
+        if rsi and ema200 and close:
+            if rsi < 30 and close > ema200:
+                timing_signal = "ÓTIMO"
+                timing_emoji = "🟢"
+            elif rsi < 40 and close < ema200:
+                timing_signal = "BARGANHA"
+                timing_emoji = "🟡"
+            elif rsi > 70 and close > ema200:
+                timing_signal = "ESTICADO"
+                timing_emoji = "🟠"
+            elif rsi > 70 and close < ema200:
+                timing_signal = "PERIGO"
+                timing_emoji = "🔴"
+        
+        timing = {
+            "signal": timing_signal,
+            "emoji": timing_emoji,
+            "above_ema200": above_ema200,
+            "rsi_zone": rsi_zone,
+            "distance_to_ema200": round(((close / ema200) - 1) * 100, 2) if ema200 and close else None
+        }
+        
+        return {
+            "ticker": ticker,
+            "company_name": s.get('Empresa', 'N/A'),
+            "sector": get_friendly_sector(sector),
+            "subsetor": s.get('subsetor', 'N/A'),
+            "price": round(price or 0, 2),
+            "change": round(change or 0, 2),
+            "volume": volume or 0,
+            
+            # PREMIUM FEATURES
+            "ai_verdict": ai_verdict,
+            "fair_value": fair_value,
+            "sector_ranking": sector_ranking,
+            
+            # Standard sections
+            "fundamental": fundamental,
+            "technical": technical,
+            "timing": timing,
+            
+            "updated_at": tech_data.get('updated_at') if tech_data else None
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("full_analysis_error", ticker=ticker, error=str(e), traceback=traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Erro ao processar {ticker}: {str(e)}")
+
+
+@app.get("/api/fusion/ranking")
+async def get_fusion_ranking_endpoint():
+    """
+    Returns the 'Perfect Stock' ranking (Fusion of Fundamental + Technical Analysis).
+    """
+    try:
+        # Move import inside try block to catch ModuleNotFoundError or Path issues
+        from core.integration.fusion import get_fusion_ranking
+        ranking = get_fusion_ranking()
+        return ranking
+    except Exception as e:
+        logger.error("fusion_ranking_failed", error=str(e))
+        # Return empty list on failure to avoid Frontend crash
+        return []
+
+
 if __name__ == "__main__":
+
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 

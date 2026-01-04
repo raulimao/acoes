@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import StockDetailModal from './StockDetailModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -54,6 +55,7 @@ export default function SuggestedPortfolio() {
     const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
     const [loading, setLoading] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
 
     const [error, setError] = useState<string | null>(null);
 
@@ -303,7 +305,12 @@ export default function SuggestedPortfolio() {
                                                             initial={{ opacity: 0, y: 10 }}
                                                             animate={{ opacity: 1, y: 0 }}
                                                             transition={{ delay: i * 0.1 }}
-                                                            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+                                                            onClick={() => setSelectedTicker(stock.ticker)}
+                                                            style={{
+                                                                borderBottom: '1px solid rgba(255,255,255,0.05)',
+                                                                cursor: 'pointer'
+                                                            }}
+                                                            whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                                                         >
                                                             <td style={{ padding: '1rem 0.75rem' }}>
                                                                 <span style={{ color: '#10b981', fontWeight: 700 }}>{stock.ticker}</span>
@@ -361,6 +368,15 @@ export default function SuggestedPortfolio() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* Detailed Stock Modal */}
+            {selectedTicker && (
+                <StockDetailModal
+                    ticker={selectedTicker}
+                    isOpen={true}
+                    onClose={() => setSelectedTicker(null)}
+                />
+            )}
         </>
     );
 }

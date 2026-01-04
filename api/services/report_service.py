@@ -41,21 +41,31 @@ FIG_WIDTH = 16.54
 FIG_HEIGHT = 11.69
 DPI = 150
 
-def generate_pdf_report(df: pd.DataFrame) -> bytes:
+def generate_pdf_report(df: pd.DataFrame, report_date: str = None) -> bytes:
     """
     Generate a professional PDF report from stock data.
-    Returns PDF as bytes.
+    Args:
+        df: DataFrame with stock data (live or snapshot)
+        report_date: Optional date string (YYYY-MM-DD) for historical reports. 
+                     If None, uses current date.
+    Returns:
+        PDF as bytes.
     """
     
     # Filter and Clean Data
     df = _clean_data(df)
+    
+    # Ensure sorting by Super Score (Critical for One Pager and Top Stocks)
+    if 'super_score' in df.columns:
+        df = df.sort_values(by='super_score', ascending=False)
     
     # Create PDF in memory
     buffer = io.BytesIO()
     
     with PdfPages(buffer) as pdf:
         # 1. Cover Page
-        _create_cover_page(pdf, df)
+        _create_cover_page(pdf, df, report_date)
+
         
         # 2. Top Opportunities
         _create_top_stocks_page(pdf, df)
@@ -126,10 +136,22 @@ def _draw_footer(fig, page_num, total_pages=5):
     fig.text(0.95, 0.03, f"Página {page_num}", fontsize=10, 
              color=COLORS['text_muted'], ha='right')
 
-def _create_cover_page(pdf, df):
+def _create_cover_page(pdf, df, report_date=None):
     fig = _setup_page()
     
-    # 1. Background Elements (Abstract Art)
+    # Use provided report_date or current date
+    if report_date:
+        try:
+            # Parse YYYY-MM-DD
+            dt = datetime.strptime(report_date, '%Y-%m-%d')
+            display_date = dt.strftime('%B %Y').upper()
+            full_date_str = dt.strftime('%d/%m/%Y')
+        except:
+            display_date = report_date
+            full_date_str = report_date
+    else:
+        display_date = datetime.now().strftime('%B %Y').upper()
+        full_date_str = datetime.now().strftime('%d/%m/%Y')
     # Circle 1
     circle1 = plt.Circle((0.1, 0.9), 0.3, color=COLORS['card'], alpha=0.3, transform=fig.transFigure)
     fig.add_artist(circle1)
@@ -145,17 +167,26 @@ def _create_cover_page(pdf, df):
              color=COLORS['primary'], ha='center', va='center')
     
     # 3. Date Badge
-    date_str = datetime.now().strftime('%B %Y').upper()
-    fig.text(0.5, 0.48, date_str, fontsize=14, color=COLORS['text_muted'], 
+    fig.text(0.5, 0.48, display_date, fontsize=14, color=COLORS['text_muted'], 
              ha='center', va='center', bbox=dict(facecolor=COLORS['card'], edgecolor=COLORS['primary'], pad=10, boxstyle='round,pad=0.5'))
+
+    # Subtitle with full date if historical
+    if report_date:
+         fig.text(0.5, 0.44, f"Snapshot Histórico: {full_date_str}", fontsize=10, 
+                  color=COLORS['warning'], ha='center', va='center')
 
     # 4. Key Stats Strip
     stats_y = 0.25
     
     # Metrics
     total_stocks = len(df)
-    avg_score = df['super_score'].mean() if 'super_score' in df.columns else 0
-    best_sector = df['setor'].mode()[0] if 'setor' in df.columns else "Diversos"
+    avg_score = df['super_score'].mean() if 'super_score' in df.columns and len(df) > 0 else 0
+    
+    best_sector = "Diversos"
+    if 'setor' in df.columns and not df.empty:
+        modes = df['setor'].mode()
+        if not modes.empty:
+            best_sector = modes.iloc[0]
     
     metrics = [
         ("AÇÕES ANALISADAS", f"{total_stocks}"),
@@ -198,6 +229,14 @@ def _create_top_stocks_page(pdf, df):
     
     top10 = df.nlargest(10, 'super_score')
     
+    if top10.empty:
+        fig.text(0.5, 0.5, "Não há dados suficientes para gerar o ranking.", 
+                 fontsize=14, color=COLORS['text_muted'], ha='center')
+        _draw_footer(fig, 2)
+        pdf.savefig(fig, facecolor=COLORS['bg'])
+        plt.close(fig)
+        return
+
     # Columns
     columns = ['RANK', 'ATIVO', 'SETOR', 'PREÇO', 'P/L', 'DY', 'ROE', 'SUPER SCORE', 'ALERTA']
     
@@ -223,41 +262,42 @@ def _create_top_stocks_page(pdf, df):
         ])
     
     # Table Styling
-    table = ax_table.table(cellText=data, colLabels=columns, loc='center', cellLoc='center')
-    
-    # Adjust layout
-    table.auto_set_font_size(False)
-    table.set_fontsize(11)
-    table.scale(1, 2.5) # More vertical space
-    
-    # Custom Cell Styling
-    for (row, col), cell in table.get_celld().items():
-        cell.set_edgecolor(COLORS['bg']) # Hide borders with BG color
-        cell.set_linewidth(2)
+    if data:
+        table = ax_table.table(cellText=data, colLabels=columns, loc='center', cellLoc='center')
         
-        # Header
-        if row == 0:
-            cell.set_facecolor(COLORS['card'])
-            cell.set_text_props(color=COLORS['primary'], weight='bold', fontsize=12)
-            cell.set_height(0.08)
-        else:
-            # Body
-            cell.set_height(0.06)
-            is_odd = row % 2 != 0
-            cell.set_facecolor(COLORS['card'] if is_odd else COLORS['bg'])
-            cell.set_text_props(color=COLORS['text'])
+        # Adjust layout
+        table.auto_set_font_size(False)
+        table.set_fontsize(11)
+        table.scale(1, 2.5) # More vertical space
+        
+        # Custom Cell Styling
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor(COLORS['bg']) # Hide borders with BG color
+            cell.set_linewidth(2)
             
-            # Highlight Score (Last Column - 1)
-            if col == 7:
+            # Header
+            if row == 0:
+                cell.set_facecolor(COLORS['card'])
                 cell.set_text_props(color=COLORS['primary'], weight='bold', fontsize=12)
+                cell.set_height(0.08)
+            else:
+                # Body
+                cell.set_height(0.06)
+                is_odd = row % 2 != 0
+                cell.set_facecolor(COLORS['card'] if is_odd else COLORS['bg'])
+                cell.set_text_props(color=COLORS['text'])
                 
-            # Highlight Alert (Last Column)
-            if col == 8:
-                cell.set_text_props(color=COLORS['danger'], weight='bold', fontsize=9)
-            
-            # Highlight Ticker (Col 1)
-            if col == 1:
-                cell.set_text_props(weight='bold')
+                # Highlight Score (Last Column - 1)
+                if col == 7:
+                    cell.set_text_props(color=COLORS['primary'], weight='bold', fontsize=12)
+                    
+                # Highlight Alert (Last Column)
+                if col == 8:
+                    cell.set_text_props(color=COLORS['danger'], weight='bold', fontsize=9)
+                
+                # Highlight Ticker (Col 1)
+                if col == 1:
+                    cell.set_text_props(weight='bold')
 
     # Legend/Notes
     fig.text(0.05, 0.12, "* Critérios: Graham, Bazin, Greenblatt e Liquidez", 
@@ -391,9 +431,24 @@ def _create_one_pager(pdf, row):
         categories = ['Valor', 'Qualidade', 'Div.', 'Cresc.', 'Liq.']
         N = len(categories)
         
-        # Mock normalized scores for visualization (would need real normalization logic)
-        values = [80, 70, 60, 50, 90] # Placeholder logic for visual 
-        values += values[:1]
+        # Real Logic: Normalize scores to 0-100 scale for visualization
+        # Note: Individual strategy scores are usually 0-1.0 or weighted sums.
+        # We need to normalize them to appear good on the chart (0-100).
+        
+        val_score = min(100, (getattr(row, 'score_graham', 0) / 4.0) * 100) # Graham max is approx 4
+        qual_score = min(100, (getattr(row, 'score_qualidade', 0) / 8.0) * 100) # Qualidade max is approx 8
+        div_score = min(100, (getattr(row, 'score_bazin', 0) / 2.0) * 100) # Bazin max is approx 2
+        
+        # Growth Score (New)
+        growth_raw = getattr(row, 'crescimento_receita_5a', 0)
+        cresc_score = 100 if growth_raw > 0.15 else 75 if growth_raw > 0 else 25
+        
+        # Liquidity Score
+        liq_raw = getattr(row, 'liquidez_2meses', 0)
+        liq_score = 100 if liq_raw > 5000000 else 50 if liq_raw > 500000 else 10
+        
+        values = [val_score, qual_score, div_score, cresc_score, liq_score]
+        values += values[:1] # Close the loop
         
         angles = [n / float(N) * 2 * np.pi for n in range(N)]
         angles += angles[:1]
@@ -428,6 +483,27 @@ def _create_one_pager(pdf, row):
         
         fig.text(0.55, y_check, f"{symbol}  {name}", fontsize=14, color=color, weight='bold')
         y_check -= 0.05
+
+    # 4. AI Verdict
+    verdict = getattr(row, 'ai_recommendation', 'NEUTRO')
+    summary = getattr(row, 'ai_summary', 'Análise não disponível.')
+    
+    # Verdict Title
+    fig.text(0.55, y_check - 0.05, "Veredito IA", fontsize=16, color=COLORS['primary'], fontweight='bold')
+    
+    # Badge
+    v_color = COLORS['text_muted']
+    if verdict == 'COMPRA' or verdict == 'COMPRA FORTE': v_color = COLORS['success']
+    elif verdict == 'VENDA': v_color = COLORS['danger']
+    elif verdict == 'AGUARDAR': v_color = COLORS['warning']
+    
+    fig.text(0.55, y_check - 0.10, verdict, fontsize=20, color=v_color, fontweight='bold',
+             bbox=dict(facecolor=COLORS['card'], edgecolor=v_color, pad=5, boxstyle='round,pad=0.5'))
+             
+    # Summary (Wrapped)
+    import textwrap
+    wrapped_summary = textwrap.fill(str(summary), width=50)
+    fig.text(0.55, y_check - 0.15, wrapped_summary, fontsize=10, color=COLORS['text'], va='top')
 
     _draw_footer(fig, 4)
     pdf.savefig(fig, facecolor=COLORS['bg'])
