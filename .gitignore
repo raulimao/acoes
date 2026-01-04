@@ -72,6 +72,7 @@ services/report_service_OLD.py
 
 # Local Data cache
 data/
+!data/technical_scores_cache.json
 ProjecaoAcoes/
 
 # Temporary Scripts & Data
