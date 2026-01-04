@@ -313,33 +313,50 @@ export default function SuggestedPortfolio() {
                                                             whileHover={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
                                                         >
                                                             <td style={{ padding: '1rem 0.75rem' }}>
-                                                                <span style={{ color: '#10b981', fontWeight: 700 }}>{stock.ticker}</span>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                                    <div style={{
+                                                                        background: 'rgba(16, 185, 129, 0.1)',
+                                                                        color: '#10b981',
+                                                                        fontWeight: 700,
+                                                                        padding: '0.25rem 0.5rem',
+                                                                        borderRadius: '0.25rem',
+                                                                        fontSize: '0.9rem'
+                                                                    }}>
+                                                                        {stock.ticker}
+                                                                    </div>
+                                                                </div>
                                                             </td>
-                                                            <td style={{ padding: '1rem 0.75rem', color: 'rgba(255,255,255,0.8)' }}>
-                                                                {stock.sector}
+                                                            <td style={{ padding: '1rem 0.75rem', color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>
+                                                                {stock.sector.length > 25 ? stock.sector.substring(0, 25) + '...' : stock.sector}
                                                             </td>
-                                                            <td style={{ padding: '1rem 0.75rem', color: 'white', textAlign: 'right' }}>
+                                                            <td style={{ padding: '1rem 0.75rem', color: 'white', textAlign: 'right', fontWeight: 500 }}>
                                                                 {formatCurrency(stock.price)}
                                                             </td>
                                                             <td style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>
                                                                 <span style={{
-                                                                    background: 'rgba(139, 92, 246, 0.2)',
-                                                                    color: '#a78bfa',
+                                                                    background: 'rgba(139, 92, 246, 0.15)',
+                                                                    color: '#c4b5fd',
                                                                     padding: '0.25rem 0.5rem',
-                                                                    borderRadius: '0.25rem',
-                                                                    fontWeight: 600
+                                                                    borderRadius: '0.375rem',
+                                                                    fontWeight: 600,
+                                                                    fontSize: '0.9rem'
                                                                 }}>
-                                                                    {stock.super_score}
+                                                                    {Number(stock.super_score).toFixed(1)}
                                                                 </span>
                                                             </td>
-                                                            <td style={{ padding: '1rem 0.75rem', color: '#10b981', textAlign: 'right', fontWeight: 600 }}>
-                                                                {stock.dividend_yield}%
+                                                            <td style={{ padding: '1rem 0.75rem', textAlign: 'right' }}>
+                                                                <span style={{
+                                                                    color: stock.dividend_yield > 6 ? '#34d399' : '#9ca3af',
+                                                                    fontWeight: stock.dividend_yield > 6 ? 600 : 400
+                                                                }}>
+                                                                    {stock.dividend_yield.toFixed(1)}%
+                                                                </span>
                                                             </td>
-                                                            <td style={{ padding: '1rem 0.75rem', color: 'rgba(255,255,255,0.6)', textAlign: 'right' }}>
-                                                                R$ {formatLiquidity(stock.liquidity)}
+                                                            <td style={{ padding: '1rem 0.75rem', color: 'rgba(255,255,255,0.6)', textAlign: 'right', fontSize: '0.9rem' }}>
+                                                                {formatLiquidity(stock.liquidity)}
                                                             </td>
                                                             <td style={{ padding: '1rem 0.75rem', color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
-                                                                {stock.reason}
+                                                                {stock.reason.length > 40 ? stock.reason.substring(0, 40) + '...' : stock.reason}
                                                             </td>
                                                         </motion.tr>
                                                     ))}

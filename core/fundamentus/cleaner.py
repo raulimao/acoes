@@ -52,9 +52,14 @@ def clean_value(x):
     """
     Clean and convert value to float.
     Handles percentages, currency formatting, and NaN.
+    IMPORTANT: If already numeric, return as-is to avoid double-conversion.
     """
     if pd.isna(x):
         return 0.0
+    
+    # If already a numeric type (float/int), return as-is
+    if isinstance(x, (int, float, np.integer, np.floating)):
+        return float(x)
     
     s = str(x).strip()
     

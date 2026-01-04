@@ -165,8 +165,12 @@ async def cron_update(background_tasks: BackgroundTasks, key: str = Query(None))
         raise HTTPException(status_code=403, detail="Forbidden")
         
     logger.info("cron_triggered", source="external")
-    background_tasks.add_task(update_market_data_background)
-    return {"status": "success", "message": "Cron job started"}
+    
+    # Import Orchestrator locally to avoid circular dependencies
+    from api.services.orchestrator import run_daily_system_update
+    
+    background_tasks.add_task(run_daily_system_update)
+    return {"status": "success", "message": "Full Daily Update (Safe Logic) Started"}
 
 
 
@@ -835,13 +839,20 @@ async def get_stats():
 @app.get("/api/sectors")
 async def get_sectors():
     """Get all available sectors."""
-    df = get_stock_data()
-    
-    if "setor" not in df.columns:
-        return []
-    
-    sectors = df[df["setor"] != "N/A"]["setor"].unique().tolist()
-    return sorted(sectors)
+    try:
+        df = get_stock_data()
+        
+        if df.empty or "setor" not in df.columns:
+            return []
+        
+        # Filter out N/A and None, then get unique values
+        sectors = df[df["setor"].notna() & (df["setor"] != "N/A")]["setor"].unique()
+        # Convert to Python list (handles numpy types)
+        sector_list = [str(s) for s in sectors if s]
+        return sorted(sector_list)
+    except Exception as e:
+        logger.error("get_sectors_failed", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/strategies", response_model=List[StrategyInfo])
@@ -1197,120 +1208,184 @@ class PortfolioRequest(BaseModel):
 @app.post("/api/portfolio/suggested")
 def get_suggested_portfolio(request: PortfolioRequest):
     """Generate suggested portfolio using Fusion Ranking (Ações Perfeitas)."""
-    fusion_list = get_fusion_ranking()
-    
-    if not fusion_list:
-        raise HTTPException(status_code=404, detail="No data available")
-    
-    # Convert to DataFrame for easier filtering
-    df = pd.DataFrame(fusion_list)
-    
-    profile = request.profile.lower()
-    
-    # Default values
-    filtered = df.copy()
-    criteria_desc = ""
-    objective_desc = ""
-    disclaimer = "Sugestões baseadas no algoritmo Fusion (Ações Perfeitas)."
-    
-    if profile == 'conservador':
-        # Fusion High Score + High Dividend + Low Volatility (implied by good fusion score components?)
-        # Let's add explicit DY filter on top of Fusion attributes.
-        # But Fusion list might be flattened or nested. 
-        # get_fusion_ranking returns flat dicts with 'fundamentals', 'technical' keys? 
-        # No, it returns flat dict with 'fusion_score', 'fund_score_raw', 'tech_score_raw' AND 'fundamentals' dict inside?
-        # Let's check get_fusion_ranking return structure in subsequent step or rely on what I saw earlier.
-        # Earlier I saw `row["fundamentals"] = {...}` but also flat fields `row["ticker"]`.
-        # I'll Assume flat fields exist if I mapped them, or access dicts.
-        # Safe bet: Access fundamental metrics from 'fundamentals' dict column or use standard df columns if they were preserved.
-        # Actually `get_fusion_ranking` constructs a new list.
-        # It does NOT flatten fundamentals to top level.
-        # So I need to access s['fundamentals']['dividend_yield'].
+    try:
+        fusion_list = get_fusion_ranking()
+        market_df = get_market_data()
         
-        criteria_desc = "Fusion Score Alto + Dividendos > 6%"
-        objective_desc = "Renda com Qualidade (Ações Perfeitas)"
+        if not fusion_list:
+            raise HTTPException(status_code=404, detail="No data available")
         
-        # Filter: Fusion Score > 70 AND DY > 0.06
-        # Need to know where DY is. Likely in s['fundamentals']['dividend_yield'] or s['dividend_yield']?
-        # get_fusion_ranking implementation: `row = {... , 'fundamentals': {...}, ...}`.
-        # It does NOT flatten fundamentals to top level.
-        # So I need to access s['fundamentals']['dividend_yield'].
+        # Create market lookup for fundamentals
+        market_dict = {}
+        if not market_df.empty:
+            market_dict = market_df.set_index('papel').to_dict('index')
         
-        def safe_get_dy(stock):
-            try:
-                return stock.get('fundamentals', {}).get('dividend_yield', 0) or 0
-            except: return 0
+        # Enrich Fusion list with Market Data fundamentals
+        fixed_list = []
+        for item in fusion_list:
+            new_item = item.copy()
+            ticker = new_item.get('ticker')
+            
+            if ticker in market_dict:
+                m_data = market_dict[ticker]
+                if 'fundamentals' not in new_item:
+                    new_item['fundamentals'] = {}
+                else:
+                    new_item['fundamentals'] = new_item['fundamentals'].copy()
+                # Map extracted fields
+                new_item['fundamentals']['dividend_yield'] = m_data.get('dividend_yield', 0)
+                new_item['fundamentals']['p_l'] = m_data.get('p_l', 0)
+                new_item['fundamentals']['p_vp'] = m_data.get('p_vp', 0)
+                new_item['fundamentals']['roe'] = m_data.get('roe', 0)
+                new_item['fundamentals']['liquidez_corrente'] = m_data.get('liquidez_corrente', 0)
+                new_item['fundamentals']['liquidez_2meses'] = m_data.get('liquidez_2meses', 0)
+                new_item['fundamentals']['div_bruta_patrimonio'] = m_data.get('div_bruta_patrimonio', 0)
+            
+            fixed_list.append(new_item)
 
-        filtered_list = [
-            s for s in fusion_list 
-            if s.get('fusion_score', 0) >= 60 
-            and safe_get_dy(s) > 0.06
-        ]
-        # Sort by Fusion Score (Quality) then DY? Or Fusion Score primarily.
-        filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
+        profile = request.profile.lower()
         
-    elif profile == 'agressivo':
-        # High Fusion Score + Growth/Momentum
-        criteria_desc = "Fusion Score Top 10% + Momentum"
-        objective_desc = "Crescimento Acelerado (Ações Perfeitas)"
+        criteria_desc = ""
+        objective_desc = ""
+        disclaimer = "Sugestões baseadas no algoritmo Fusion (Ações Perfeitas)."
         
-        # Just top Fusion Scores are already "Perfect Stocks".
-        # Maybe emphasize Technical Score?
-        filtered_list = [
-            s for s in fusion_list 
-            if s.get('fusion_score', 0) >= 70
-        ]
-        filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
-        
-    else: # Moderado
-        # Balance
-        criteria_desc = "Fusion Score > 60 + Consistência"
-        objective_desc = "Equilíbrio Risco/Retorno (Ações Perfeitas)"
-        
-        filtered_list = [
-            s for s in fusion_list 
-            if s.get('fusion_score', 0) >= 60
-        ]
-        filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
+        # Helper getters
+        def get_fund(stock, key, default=0):
+            return stock.get('fundamentals', {}).get(key, default) or 0
 
-    # Fallback if empty
-    if not filtered_list:
-        filtered_list = sorted(fusion_list, key=lambda x: x.get('fusion_score', 0), reverse=True)[:5]
+        if profile == 'conservador':
+            criteria_desc = "Value Investing (Graham/Bazin) + Renda"
+            objective_desc = "Segurança, Preço Justo e Dividendos"
+            
+            # COMPLEX CONSERVATIVE STRATEGY
+            # 1. Safety: Profitable (P/L > 0)
+            # 2. Valuation: Not Overvalued (P/VP < 3.0) - Margin of Safety
+            # 3. Quality: Decent ROE (> 10%)
+            # 4. Income: Decent Yield (> 4%)
+            # 5. Liquidity: Volume > 1M (Easy to exit)
+            # 6. Trend: Not a Falling Knife (Tech Prob >= 40%) - Avoid severe downtrends
+            # 7. Sustainability: Payout < 120% (Avoid burning cash to pay divs)
+            # 8. Leverage: Debt/Equity < 2.0 (Avoid explosive debt)
+            
+            filtered_list = [
+                s for s in fixed_list
+                if get_fund(s, 'p_l') > 0                    # Lucrativa
+                and get_fund(s, 'p_vp') < 3.0                # Preço Justo/Barato
+                and get_fund(s, 'roe') > 0.08                # Rentabilidade Minima
+                and get_fund(s, 'dividend_yield') > 0.04     # Renda Passiva
+                and get_fund(s, 'liquidez_2meses') > 1000000 # Liquidez Diária > 1M
+                and s.get('tech_prob', 0) >= 0.4             # Evitar Tendência de Baixa Forte
+                and (get_fund(s, 'dividend_yield') * get_fund(s, 'p_l')) <= 1.2 # Payout Sustentável
+                and get_fund(s, 'div_bruta_patrimonio') < 2.0 # Alavancagem Controlada
+            ]
+            
+            # Sorting: "Deep Value Score"
+            # Prioritizes cheap assets (low P/VP) that pay well (High DY) and are quality (High Fusion)
+            # Score = (Norm DY * 2) + (1/P_VP * 1) + (Fusion * 1)
+            def conservative_score(x):
+                dy = get_fund(x, 'dividend_yield')
+                pvp = get_fund(x, 'p_vp')
+                safe_pvp = pvp if pvp > 0.1 else 1 # Avoid div/0
+                valuation_score = 1 / safe_pvp
+                return (dy * 100) + (valuation_score * 0.5) + (x.get('fusion_score', 0) / 20)
+                
+            filtered_list.sort(key=conservative_score, reverse=True)
+            
+        elif profile == 'agressivo':
+            criteria_desc = "Alta Volatilidade + Momentum + Turnaround"
+            objective_desc = "Ganhos Exponenciais (Risco Elevado)"
+            
+            # AGGRESSIVE STRATEGY
+            # Focus on Technical Breakouts (Momentum) + High Upside potential
+            # Doesn't mind higher P/L if growth is there
+            
+            filtered_list = [
+                s for s in fixed_list
+                if s.get('tech_prob', 0) >= 0.7          # Strong Technical Trend (70%+)
+                and get_fund(s, 'liquidez_2meses') > 500000 # Liquidez Diária > 500k
+            ]
+            
+            # Sorting: "Momentum Score"
+            # Tech Strength dominated, but tie-break with ROE (Efficiency)
+            filtered_list.sort(key=lambda x: (x.get('tech_prob', 0), get_fund(x, 'roe')), reverse=True)
+            
+        else: # Moderado
+            criteria_desc = "Ações Perfeitas (Fusion Score)"
+            objective_desc = "O Melhor dos Dois Mundos (Quality/Growth)"
+            
+            # MODERATE STRATEGY
+            # The "Perfect Stock" - High scores in both Fund and Tech
+            filtered_list = [
+                s for s in fixed_list
+                if s.get('fusion_score', 0) >= 60        # Alta Qualidade Geral
+                and s.get('matches_tech') is True        # Tecnico concorda com Fundamental
+                and get_fund(s, 'liquidez_2meses') > 1000000 # Liquidez Diária > 1M
+            ]
+            filtered_list.sort(key=lambda x: x.get('fusion_score', 0), reverse=True)
 
-    # Select Top 5
-    top_stocks = filtered_list[:5]
-    
-    stocks_list = []
-    for s in top_stocks:
-        ticker = s.get('ticker')
-        fund = s.get('fundamentals', {})
-        tech = s.get('technical', {})
-        ai = s.get('ai_verdict', {})
+        # Fallback Logic (if filters are too strict)
+        if not filtered_list:
+            if profile == 'conservador':
+                 # Fallback: Just Dividend Kings (High DY + Positive P/L)
+                 filtered_list = [s for s in fixed_list if get_fund(s, 'dividend_yield') > 0.04 and get_fund(s, 'p_l') > 0]
+                 filtered_list.sort(key=lambda x: get_fund(x, 'dividend_yield'), reverse=True)
+            elif profile == 'agressivo':
+                 # Fallback: Just pure Technical Strength
+                 filtered_list = sorted(fixed_list, key=lambda x: x.get('tech_prob', 0), reverse=True)
+            else:
+                 # Fallback: Just Top Fusion Score
+                 filtered_list = sorted(fixed_list, key=lambda x: x.get('fusion_score', 0), reverse=True)
+            
+            # If still empty (very rare)
+            if not filtered_list:
+                filtered_list = sorted(fixed_list, key=lambda x: x.get('fusion_score', 0), reverse=True)
+
+        # Select Top 5
+        top_stocks = filtered_list[:5]
         
-        reason = ai.get('summary') or f"Fusion Score: {s.get('fusion_score')}"
-        
-        stocks_list.append({
-            "ticker": ticker,
-            "sector": s.get('sector', 'N/A'),
-            "price": s.get('price', 0),
-            "super_score": s.get('fusion_score', 0), # Map fusion to super_score for frontend compat
-            "p_l": fund.get('p_l', 0),
-            "dividend_yield": round((fund.get('dividend_yield', 0) or 0) * 100, 2),
-            "roe": round((fund.get('roe', 0) or 0) * 100, 2),
-            "liquidity": fund.get('liquidez_corrente', 0), # or liquidez_2meses?
-            "reason": reason
-        })
-        
-    return {
-        "profile": request.profile,
-        "criteria": {
-            "description": criteria_desc,
-            "objective": objective_desc,
-            "filters": "Fusion Algorithm" 
-        },
-        "stocks": stocks_list,
-        "disclaimer": disclaimer
-    }
+        stocks_list = []
+        for s in top_stocks:
+            ticker = s.get('ticker')
+            fund = s.get('fundamentals', {})
+            ai_verdict = s.get('ai_verdict', {})
+            
+            # Handle ai_verdict if it's a string (which it is in Fusion) or dict
+            reason = ""
+            if isinstance(ai_verdict, dict):
+                 reason = ai_verdict.get('summary')
+            elif isinstance(ai_verdict, str):
+                 reason = f"{ai_verdict} ({s.get('ai_recommendation', '')})"
+                 
+            if not reason:
+                 reason = f"Fusion Score: {s.get('fusion_score', 0):.1f}"
+            
+            stocks_list.append({
+                "ticker": ticker,
+                "sector": s.get('sector', 'N/A'),
+                "price": s.get('price', 0),
+                "super_score": s.get('fusion_score', 0),
+                "p_l": fund.get('p_l', 0),
+                "dividend_yield": round((fund.get('dividend_yield', 0) or 0) * 100, 2),
+                "roe": round((fund.get('roe', 0) or 0) * 100, 2),
+                "liquidity": fund.get('liquidez_2meses', 0), # Return Volume to UI
+                "reason": reason
+            })
+            
+        return {
+            "profile": request.profile,
+            "criteria": {
+                "description": criteria_desc,
+                "objective": objective_desc,
+                "filters": "Fusion Algorithm" 
+            },
+            "stocks": stocks_list,
+            "disclaimer": disclaimer
+        }
+    except Exception as e:
+        logger.error("suggested_portfolio_failed", error=str(e))
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 
@@ -1326,32 +1401,42 @@ async def generate_weekly_report(current_user: dict = Depends(get_current_user))
         raise HTTPException(status_code=403, detail="Apenas usuários Premium podem baixar relatórios.")
 
     try:
+        # Get both Fusion ranking (for scores/verdict) and Market Data (for fundamentals)
         fusion_ranking = get_fusion_ranking()
-        if not fusion_ranking:
+        market_df = get_market_data()
+        
+        if not fusion_ranking or market_df.empty:
              raise HTTPException(status_code=404, detail="Dados de mercado indisponíveis")
 
-        # Convert Fusion Data to DataFrame expected by report_service
-        # Need to flatten some fields if report_service expects them at top level
+        # Create lookup from market data by ticker
+        market_dict = market_df.set_index('papel').to_dict('index')
         
-        # Helper to flatten
+        # Merge Fusion data with market fundamentals
         flat_data = []
         for item in fusion_ranking:
-            flat = item.copy()
-            # Flatten fundamentals
-            fund = item.get('fundamentals', {})
-            for k, v in fund.items():
-                if k not in flat: flat[k] = v
+            ticker = item.get('ticker')
             
-            # Helper for report service expectations
-            flat['papel'] = item.get('ticker')
-            flat['cotacao'] = item.get('price')
-            flat['super_score'] = item.get('fusion_score') # Use Fusion Score as Super Score
-            flat['setor'] = item.get('sector')
+            # Start with market data if available (has all fundamentals)
+            market_row = market_dict.get(ticker, {})
+            flat = dict(market_row)  # Copy all market fields
             
-            # AI Verdict
-            ai = item.get('ai_verdict', {})
-            flat['ai_recommendation'] = ai.get('recommendation')
-            flat['ai_summary'] = ai.get('summary')
+            # Override with Fusion-specific fields
+            flat['papel'] = ticker
+            flat['cotacao'] = item.get('price', flat.get('cotacao', 0))
+            flat['setor'] = item.get('sector', flat.get('setor', 'N/A'))
+            flat['super_score'] = item.get('fusion_score', flat.get('super_score', 0))
+            
+            # AI Verdict from Fusion
+            flat['ai_recommendation'] = item.get('ai_recommendation', 'NEUTRO')
+            ai_verdict = item.get('ai_verdict', {})
+            if isinstance(ai_verdict, dict):
+                flat['ai_summary'] = ai_verdict.get('summary', '')
+            else:
+                flat['ai_summary'] = str(ai_verdict) if ai_verdict else ''
+            
+            # Ensure red_flags is a list
+            if 'red_flags' not in flat or not isinstance(flat.get('red_flags'), list):
+                flat['red_flags'] = []
             
             flat_data.append(flat)
             
@@ -1454,6 +1539,8 @@ def generate_ai_verdict(stock_data: dict, tech_data: dict) -> dict:
     dy = stock_data.get('dividend_yield', 0)
     roe = stock_data.get('roe', 0)
     pvp = stock_data.get('p_vp', 0)
+    liq = stock_data.get('liquidez_2meses') or stock_data.get('volume') or 0
+    debt_equity = stock_data.get('div_bruta_patrimonio', 0) or 0
     
     # Technical signals
     tech_signal = tech_data.get('summary_signal', 'NEUTRAL')
@@ -1466,6 +1553,25 @@ def generate_ai_verdict(stock_data: dict, tech_data: dict) -> dict:
     highlights = []
     concerns = []
     
+    # --- RISK CHECKS (BLIND SPOTS) ---
+    risk_level = "NONE"
+    
+    # 1. Liquidity Risk
+    if liq < 500_000:
+        concerns.append(f"Baixa Liquidez (Vol ~{liq/1000:.0f}k)")
+        risk_level = "CRITICAL"
+        
+    # 2. Payout Sustainability
+    payout = dy * pl
+    if payout > 1.2 and dy > 0.10:
+        concerns.append(f"Payout Insustentável ({payout*100:.0f}%)")
+        risk_level = "HIGH" if risk_level != "CRITICAL" else risk_level
+        
+    # 3. Debt Risk
+    if debt_equity > 2.0:
+        concerns.append(f"Alavancagem Alta ({debt_equity:.1f}x)")
+        risk_level = "HIGH" if risk_level != "CRITICAL" else risk_level
+
     # Fundamental scoring
     if pl > 0 and pl < 10:
         fund_points += 3
@@ -1526,7 +1632,22 @@ def generate_ai_verdict(stock_data: dict, tech_data: dict) -> dict:
     # Final verdict
     total_points = fund_points + tech_points
     
-    if total_points >= 8:
+    # Override based on Risk Level
+    if risk_level == "CRITICAL":
+        verdict = "RISCO CRÍTICO"
+        verdict_color = "red"
+        verdict_icon = "☠️"
+        recommendation = "EVITAR/VENDA"
+        summary = "Ativo apresenta riscos estruturais graves (Liquidez ou Solvência). Não recomendado."
+        total_points = -10 # Reset score
+    elif risk_level == "HIGH":
+        verdict = "ALTO RISCO"
+        verdict_color = "orange"
+        verdict_icon = "⚠️"
+        recommendation = "CAUTELA"
+        summary = "Indicadores fundamentalistas ou de sustentabilidade preocupantes. Exige análise detalhada."
+        total_points = -5
+    elif total_points >= 8:
         verdict = "OPORTUNIDADE EXCEPCIONAL"
         verdict_color = "emerald"
         verdict_icon = "🏆"

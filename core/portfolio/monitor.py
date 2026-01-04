@@ -43,7 +43,7 @@ class DailyMonitor:
         # But alerts are most critical for the Top picks. Let's assume user holds Top 10.
         
         # Strategy: Monitor ALL items in snapshot, but highlight Rank.
-        snapshot_map = {item['papel']: item for item in snapshot_assets}
+        snapshot_map = {item.get('ticker', item.get('papel')): item for item in snapshot_assets}
         
         # 2. Load Current Market Data
         current_df = get_market_data()
@@ -68,19 +68,21 @@ class DailyMonitor:
         active_portfolio = snapshot_assets[:25]
         
         for i, old_data in enumerate(active_portfolio):
-            ticker = old_data.get('papel')
+            ticker = old_data.get('ticker', old_data.get('papel'))
             rank = i + 1
             
             alerts["summary"]["checked_assets"] += 1
             
-            # Find current data
+            # Find current data - Skip if ticker is None
+            if not ticker:
+                continue
             current_row = current_df[current_df['papel'] == ticker]
             
             asset_status = {
                 "rank": rank,
                 "ticker": ticker,
-                "sector": old_data.get('setor', 'N/A'),
-                "entry_price": old_data.get('cotacao', 0),
+                "sector": old_data.get('sector', old_data.get('setor', 'N/A')),
+                "entry_price": old_data.get('price', old_data.get('cotacao', 0)),
                 "current_price": 0.0,
                 "pnl_pct": 0.0,
                 "current_score": 0.0,
@@ -90,7 +92,7 @@ class DailyMonitor:
             if not current_row.empty:
                 row = current_row.iloc[0]
                 current_price = row.get('cotacao', 0)
-                entry_price = old_data.get('cotacao', 0)
+                entry_price = old_data.get('price', old_data.get('cotacao', 0))
                 asset_status["current_price"] = current_price
                 asset_status["current_score"] = row.get('super_score', 0)
                 

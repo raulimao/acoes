@@ -132,14 +132,35 @@ def get_fusion_ranking():
             # Fusion Formula (70% Fund, 30% Tech)
             fusion_score = (fund_score * 0.7) + (tech_score * 0.3)
             
+            # --- RISK PENALTIES (BLIND SPOT FIXES) ---
+            risk_alert = None
+            
+            # 1. Liquidity Penalty (Crush Score for Illiquid Stocks)
+            liq_vol = row.get('liquidez_2meses') or row.get('volume') or 0
+            if liq_vol < 500_000:
+                fusion_score *= 0.1 # Decimate score
+                risk_alert = "RISCO (ILIQUIDEZ)"
+                
+            # 2. Payout Penalty (Unstainable Dividends)
+            pl_val = row.get('p_l', 0) or 0
+            dy_val = row.get('dividend_yield', 0) or 0
+            payout_ratio = dy_val * pl_val
+            if payout_ratio > 1.2 and dy_val > 0.10: # Only if High Yield > 10%
+                fusion_score *= 0.5 # Halve score
+                risk_alert = "ALERTA (PAYOUT)"
+                
+            # 3. Debt Penalty (High Leverage)
+            debt_equity = row.get('div_bruta_patrimonio', 0) or 0
+            if debt_equity > 2.0:
+                fusion_score *= 0.7 # Reduce by 30%
+                risk_alert = "ALERTA (DÍVIDA)"
+
             # --- AI VERDICT CALCULATION (Simplified) ---
             # Combines fundamental + technical scoring for quick verdict
             fund_points = 0
             tech_points = 0
             
             # Fundamental scoring (from stock data)
-            pl_val = row.get('p_l', 0) or 0
-            dy_val = row.get('dividend_yield', 0) or 0
             roe_val = row.get('roe', 0) or 0
             pvp_val = row.get('p_vp', 0) or 0
             
@@ -186,7 +207,11 @@ def get_fusion_ranking():
             total_points = fund_points + tech_points
             
             # Determine verdict
-            if total_points >= 8:
+            if risk_alert:
+                ai_verdict = risk_alert.split(" ")[0] # "RISCO" or "ALERTA"
+                ai_verdict_color = "red" if "RISCO" in risk_alert else "amber"
+                ai_recommendation = risk_alert
+            elif total_points >= 8:
                 ai_verdict = "OPORTUNIDADE"
                 ai_verdict_color = "emerald"
                 ai_recommendation = "COMPRA FORTE"

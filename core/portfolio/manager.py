@@ -26,20 +26,17 @@ class SnapshotManager:
             
         logger.info("snapshot_creation_start", date=snapshot_date)
         
-        # 1. Get Current Market Data (Fresh Live Data)
-        df_current = get_market_data()
+        # 1. Get Fusion Ranking Data (Ações Perfeitas)
+        from core.integration.fusion import get_fusion_ranking
+        fusion_data = get_fusion_ranking()
         
-        if df_current.empty:
-            logger.error("snapshot_failed_empty_data")
+        if not fusion_data:
+            logger.error("snapshot_failed_empty_fusion_data")
             return False
-            
-        # Ensure sorting just in case
-        if 'super_score' in df_current.columns:
-            df_current = df_current.sort_values('super_score', ascending=False)
-            
+
         # 2. Serialize Data
-        # We save ALL assets to allow history search, but we can flag the "Top 10"
-        assets_list = df_current.fillna(0).to_dict(orient="records")
+        # Fusion returns a list of dicts, so we can use it directly
+        assets_list = fusion_data
         
         # 3. Prepare Payload
         payload = {
