@@ -10,6 +10,7 @@ interface Stock {
     p_vp?: number;
     dividend_yield?: number;
     super_score?: number;
+    fusion_score?: number;
     red_flags?: string[];
 }
 
@@ -23,11 +24,7 @@ interface StockCardProps {
 }
 
 export default function StockCard({ stock, index, onClick, isSelected, onToggleSelect }: StockCardProps) {
-    const getScoreColor = (score: number) => {
-        if (score >= 12) return 'text-green-400 bg-green-500/20';
-        if (score >= 8) return 'text-yellow-400 bg-yellow-500/20';
-        return 'text-red-400 bg-red-500/20';
-    };
+
 
     // Helper to get flag details
     const getFlagDetails = (flag: string) => {
@@ -44,6 +41,20 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
         }
     };
 
+    const displayScore = stock.fusion_score ?? (stock.super_score && stock.super_score > 30 ? stock.super_score : (stock.super_score ?? 0));
+    const isPercentScale = (stock.fusion_score !== undefined) || (stock.super_score && stock.super_score > 30);
+
+    const getScoreColor = (score: number) => {
+        if (isPercentScale) {
+            if (score >= 80) return 'text-green-400 bg-green-500/20';
+            if (score >= 60) return 'text-yellow-400 bg-yellow-500/20';
+            return 'text-red-400 bg-red-500/20';
+        }
+        if (score >= 12) return 'text-green-400 bg-green-500/20';
+        if (score >= 8) return 'text-yellow-400 bg-yellow-500/20';
+        return 'text-red-400 bg-red-500/20';
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -58,9 +69,9 @@ export default function StockCard({ stock, index, onClick, isSelected, onToggleS
                     <h3 className="text-lg font-bold text-white truncate">{stock.papel}</h3>
                     <p className="text-xs text-white/40">{stock.setor ? String(stock.setor).slice(0, 20) : 'N/A'}</p>
                 </div>
-                <div className={`px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1 ${getScoreColor(stock.super_score || 0)}`}>
+                <div className={`px-2 py-1 rounded-lg text-sm font-bold flex items-center gap-1 ${getScoreColor(displayScore)}`}>
                     <Zap className="w-3 h-3" />
-                    {stock.super_score !== undefined ? stock.super_score.toFixed(1) : '0.0'}
+                    {displayScore.toFixed(1)}{isPercentScale ? '' : ''}
                 </div>
             </div>
 

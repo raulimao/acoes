@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime, date
 from typing import List, Optional
 
-from services.supabase_client import get_client, is_configured
+from api.services.supabase_client import get_client, is_configured
 from config.settings import SCORE_MINIMO_HISTORICO, COLUNAS_HISTORICO
 
 

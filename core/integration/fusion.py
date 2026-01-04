@@ -53,12 +53,13 @@ def get_fusion_ranking():
         log_debug(f"Error getting market data: {e}")
         return []
     
-    # NEW: Normalize Super Score (0-100) -> (0-1)
-    # This was accidentally removed. Restoring it.
-    max_score = df_fund['super_score'].max()
-    if max_score == 0: max_score = 1
-    
-    df_fund['fund_norm'] = df_fund['super_score'] / max_score
+    # FIXED: Use a fixed normalization factor (max points possible is ~25-30)
+    # This prevents the 'bubble' where the top stock always becomes 100% fundamental
+    # even if its absolute points are low.
+    NORM_BASE = 25.0 
+    df_fund['fund_norm'] = df_fund['super_score'] / NORM_BASE
+    # Cap at 1.0
+    df_fund['fund_norm'] = df_fund['fund_norm'].clip(upper=1.0)
     
     # 2. Get Technical Data (Optimized: Read from JSON Cache - RICH DATA)
     tech_data = {} # ticker -> {score, rsi, ema200, close, signal...}
@@ -238,7 +239,7 @@ def get_fusion_ranking():
             
             ranking.append({
                 "ticker": ticker,
-                "company_name": row.get('Empresa', 'N/A'),
+                "company_name": row.get('empresa') or row.get('Empresa', 'N/A'),
                 "sector": row.get('setor', 'N/A'),
                 "price": row.get('cotacao', 0),
                 "fund_score_raw": row.get('super_score', 0),

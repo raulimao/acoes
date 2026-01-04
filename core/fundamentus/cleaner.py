@@ -138,7 +138,9 @@ def corrigir_cotacoes(df: pd.DataFrame) -> pd.DataFrame:
     def ajustar(x):
         if pd.isna(x):
             return x
-        if x > 1000 or (x > 100 and x % 1 == 0):
+        # Fix extreme scaling issues (some tickers come as 100x)
+        # Assuming no stock in B3 is > R$ 2000.00
+        if x > 2000:
             return x / 100
         return x
     

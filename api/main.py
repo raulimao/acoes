@@ -254,6 +254,7 @@ class StockData(BaseModel):
     score_bazin: Optional[float] = None
     score_qualidade: Optional[float] = None
     super_score: Optional[float] = None
+    fusion_score: Optional[float] = None
 
 
 class StrategyInfo(BaseModel):
@@ -775,6 +776,11 @@ async def get_stocks(
     
     # Convert to dict and handle NaN
     result = df.fillna(0).to_dict(orient="records")
+    
+    # Enrichment: if super_score looks like a percent (> 30), it's probably 
+    # a legacy record that hasn't been synced. 
+    # For new records, fusion_score will be the one in the 0-100 range.
+    
     return result
 
 
@@ -1911,7 +1917,7 @@ async def get_full_stock_analysis(ticker: str):
         
         return {
             "ticker": ticker,
-            "company_name": s.get('Empresa', 'N/A'),
+            "company_name": s.get('empresa') or s.get('Empresa', 'N/A'),
             "sector": get_friendly_sector(sector),
             "subsetor": s.get('subsetor', 'N/A'),
             "price": round(price or 0, 2),

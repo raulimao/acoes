@@ -48,18 +48,19 @@ async def run_daily_system_update():
         logger.error("fusion_ranking_failed", error=str(e))
         return
 
-    # 3. Sync Fusion Scores back to Market Data Cache
-    # This ensures that even raw API calls see the 'Safe' score
-    logger.info("step_3_sync_scores")
-    try:
-        fusion_map = {item['ticker']: item['fusion_score'] for item in fusion_list}
-        df_market['super_score'] = df_market['papel'].map(fusion_map).fillna(0)
-        
         # Save updated scores to DB 
         # (We update the 'super_score' column in 'data' jsonb)
         client = get_client()
         if client:
-             # Re-construct JSON payload
+             # NEW: Distinguish between base Fundamental Points (super_score) 
+             # and the combined percent (fusion_score)
+             for item in fusion_list:
+                 ticker = item['ticker']
+                 # Find the record in df_market
+                 mask = df_market['papel'] == ticker
+                 if not df_market[mask].empty:
+                     df_market.loc[mask, 'fusion_score'] = item['fusion_score']
+             
              records = df_market.fillna(0).to_dict(orient="records")
              client.table("market_data_cache").upsert({
                  "id": 1, 
