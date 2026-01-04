@@ -192,9 +192,9 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                             onChange={(e) => updateFilter('setor', e.target.value)}
                                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
                                         >
-                                            <option value="">Todos os setores</option>
+                                            <option className="bg-slate-800 text-white" value="">Todos os setores</option>
                                             {sectors.map(s => (
-                                                <option key={s} value={s}>{s}</option>
+                                                <option className="bg-slate-800 text-white" key={s} value={s}>{s}</option>
                                             ))}
                                         </select>
                                     </FilterLock>
@@ -212,10 +212,10 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                             onChange={(e) => updateFilter('companyType', e.target.value)}
                                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
                                         >
-                                            <option value="">Todas</option>
-                                            <option value="blue_chips">💎 Blue Chips</option>
-                                            <option value="mid_caps">📊 Mid Caps</option>
-                                            <option value="small_caps">🚀 Small Caps</option>
+                                            <option className="bg-slate-800 text-white" value="">Todas</option>
+                                            <option className="bg-slate-800 text-white" value="blue_chips">💎 Blue Chips</option>
+                                            <option className="bg-slate-800 text-white" value="mid_caps">📊 Mid Caps</option>
+                                            <option className="bg-slate-800 text-white" value="small_caps">🚀 Small Caps</option>
                                         </select>
                                     </FilterLock>
                                 </div>
@@ -442,11 +442,11 @@ export default function PremiumFilters({ isPremium, sectors, onFiltersChange, on
                                                 onChange={(e) => updateFilter('minLiquidity', parseFloat(e.target.value))}
                                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
                                             >
-                                                <option value="">Qualquer</option>
-                                                <option value="1000000">{'> R$ 1M'}</option>
-                                                <option value="10000000">{'> R$ 10M'}</option>
-                                                <option value="50000000">{'> R$ 50M'}</option>
-                                                <option value="100000000">{'> R$ 100M'}</option>
+                                                <option className="bg-slate-800 text-white" value="">Qualquer</option>
+                                                <option className="bg-slate-800 text-white" value="1000000">{'> R$ 1M'}</option>
+                                                <option className="bg-slate-800 text-white" value="10000000">{'> R$ 10M'}</option>
+                                                <option className="bg-slate-800 text-white" value="50000000">{'> R$ 50M'}</option>
+                                                <option className="bg-slate-800 text-white" value="100000000">{'> R$ 100M'}</option>
                                             </select>
                                         </FilterLock>
                                     </div>
