@@ -244,6 +244,10 @@ def get_fusion_ranking():
                 "price": row.get('cotacao', 0),
                 "fund_score_raw": row.get('super_score', 0),
                 "tech_prob": tech_score,
+                "dy": row.get('dividend_yield', 0),
+                "roe": row.get('roe', 0),
+                "p_l": row.get('p_l', 0),
+                "growth": row.get('crescimento_receita_5a', 0),
                 "fusion_score": fusion_score * 100, # Scale to 0-100 for display
                 "matches_tech": tech_score > 0.6,
                 # Technical fields
@@ -267,7 +271,7 @@ def get_fusion_ranking():
         log_debug(f"Error during fusion loop: {e}")
         traceback.print_exc()
     
-    return ranking[:50] # Return Top 50
+    return ranking # Return All stocks (Caller handles limits)
 
 if __name__ == "__main__":
     # Test

@@ -28,7 +28,7 @@ from utils.logging_config import logger
 
 from core.pipeline import carregar_dados_completos
 from services.history_service import save_to_historico, get_historico
-from core.integration.fusion import get_fusion_ranking
+from core.integration import fusion
 # from services.setores_service import get_all_setores (Removed)
 
 from services.data_service import get_market_data, update_market_data_background
@@ -145,12 +145,18 @@ def get_stock_data():
 
 
 
+import importlib
+from core.integration import fusion
+
 @app.post("/api/admin/refresh-cache")
 async def force_refresh(background_tasks: BackgroundTasks, key: str = Query(None)):
     """Force background data update (Admin)."""
     if key != os.getenv("ADMIN_KEY", "admin123"):
         raise HTTPException(status_code=403, detail="Forbidden")
         
+    # Force reload modules
+    importlib.reload(fusion)
+    
     background_tasks.add_task(update_market_data_background)
     return {"status": "started", "message": "Scraper rodando em background..."}
 
@@ -271,6 +277,14 @@ class DashboardStats(BaseModel):
     top_stock: str
     top_score: float
     sectors_count: int
+    opportunities_count: int
+    toxic_count: int
+    market_sentiment: str
+    avg_dividend_yield: float
+    avg_roe: float
+    avg_pl: float
+    best_sector: str
+    avg_growth: float
 
 
 # Auth Models
@@ -801,7 +815,7 @@ async def get_stock(ticker: str):
 async def get_stats():
     """Get dashboard statistics based on Fusion Ranking (Ações Perfeitas)."""
     try:
-        fusion_data = get_fusion_ranking()
+        fusion_data = fusion.get_fusion_ranking()
     except Exception as e:
         print(f"Error getting fusion stats: {e}")
         # Fallback to empty if fusion fails
@@ -823,14 +837,62 @@ async def get_stats():
         )
     
     # Calculate stats from Fusion Data
-    # fusion_data is a list of dicts
     total_stocks = len(fusion_data)
     scores = [s.get("fusion_score", 0) for s in fusion_data]
     avg_score = sum(scores) / len(scores) if scores else 0
     
-    # Data is already sorted by fusion_score in get_fusion_ranking
-    top_stock = fusion_data[0]
+    # Opportunities: Score > 80
+    opportunities = [s for s in fusion_data if s.get("fusion_score", 0) >= 80]
     
+    # Toxic: Score < 40 (Lower quality)
+    toxic = [s for s in fusion_data if s.get("fusion_score", 0) < 40]
+    
+    # Market Sentiment: % of positive timing signals
+    positive_signals = [s for s in fusion_data if s.get("timing_signal") in ["ÓTIMO", "BARGANHA"]]
+    sentiment_score = (len(positive_signals) / total_stocks * 100) if total_stocks > 0 else 0
+    
+    if sentiment_score > 70: sentiment_str = "Muito Otimista"
+    elif sentiment_score > 50: sentiment_str = "Cautelosamente Otimista"
+    elif sentiment_score > 30: sentiment_str = "Neutro / Misto"
+    else: sentiment_str = "Pessimista / Alerta"
+    
+    # Avg DY of Top 10
+    top_10 = fusion_data[:10]
+    # We need to get DY from the technical indicators or the row data.
+    # get_fusion_ranking might not include everything by default if not specified.
+    # But it has the raw data. Wait, let's check fusion.py if DY is there.
+    # Looking at fusion.py view earlier, it wasn't returned in the dict.
+    # Ah, I should add it to fusion.py's ranking.append if I want it here.
+    
+    # For now, let's get DY from the list if available, or 0.
+    # Actually, let's just use the Fusion Score as a proxy or fix fusion.py first.
+    
+    # I'll add "dy" to the ranking in fusion.py in the next step.
+    # For now, I'll assume it's there or handle fallback.
+    top_dys = [s.get("dy", 0) for s in top_10]
+    avg_dy = (sum(top_dys) / len(top_dys)) if top_dys else 0
+    
+    # New Stats (Top 10)
+    top_roes = [s.get("roe", 0) for s in top_10]
+    avg_roe = (sum(top_roes) / len(top_roes)) if top_roes else 0
+    
+    top_pls = [s.get("p_l", 0) for s in top_10 if s.get("p_l", 0) > 0] # Filter out negative P/L
+    avg_pl = (sum(top_pls) / len(top_pls)) if top_pls else 0
+    
+    top_growths = [s.get("growth", 0) for s in top_10]
+    avg_growth = (sum(top_growths) / len(top_growths)) if top_growths else 0
+    
+    # Best Sector (Sector with most stocks in Top 50)
+    top_50 = fusion_data[:50]
+    sector_counts = {}
+    for s in top_50:
+        sec = s.get("sector", "N/A")
+        if sec != "N/A":
+            sector_counts[sec] = sector_counts.get(sec, 0) + 1
+    
+    best_sector = max(sector_counts, key=sector_counts.get) if sector_counts else "N/A"
+    
+    top_stock = fusion_data[0] if fusion_data else {}
     unique_sectors = set(s.get("sector") for s in fusion_data if s.get("sector"))
     
     return DashboardStats(
@@ -838,7 +900,15 @@ async def get_stats():
         avg_super_score=round(avg_score, 2),
         top_stock=top_stock.get("ticker", "N/A"),
         top_score=round(top_stock.get("fusion_score", 0), 2),
-        sectors_count=len(unique_sectors)
+        sectors_count=len(unique_sectors),
+        opportunities_count=len(opportunities),
+        toxic_count=len(toxic),
+        market_sentiment=sentiment_str,
+        avg_dividend_yield=round(avg_dy * 100, 2),
+        avg_roe=round(avg_roe * 100, 2), # %
+        avg_pl=round(avg_pl, 2),
+        best_sector=best_sector,
+        avg_growth=round(avg_growth * 100, 2) # %
     )
 
 

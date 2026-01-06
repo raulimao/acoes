@@ -19,7 +19,11 @@ import {
   Skull,
   Lock,
   FileText,
-  Shield // Imported Shield Icon
+  Shield,
+  Activity,
+  Calculator,
+  Briefcase,
+  TrendingUp
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -76,6 +80,14 @@ interface Stats {
   top_stock: string;
   top_score: number;
   sectors_count: number;
+  opportunities_count: number;
+  toxic_count: number;
+  market_sentiment: string;
+  avg_dividend_yield: number;
+  avg_roe: number;
+  avg_pl: number;
+  best_sector: string;
+  avg_growth: number;
 }
 
 export default function Dashboard() {
@@ -467,41 +479,122 @@ export default function Dashboard() {
         </header>
 
         <div className="dashboard-main">
-          {/* Stats Cards */}
-          <motion.div
-            className="dashboard-stats-grid"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <StatCard
-              title="Total de Ações"
-              value={stats?.total_stocks || 0}
-              icon={BarChart3}
-              gradient="from-cyan-400 to-blue-600"
-              change={filteredStocks.length}
-              changeLabel="filtradas"
-            />
-            <StatCard
-              title="Score Médio"
-              value={stats?.avg_super_score?.toFixed(1) || '0'}
-              icon={PieChart}
-              gradient="from-purple-400 to-pink-600"
-            />
-            <StatCard
-              title="Top Ação"
-              value={stats?.top_stock || 'N/A'}
-              subtitle={`Score: ${stats?.top_score || 0}`}
-              icon={Trophy}
-              gradient="from-green-400 to-emerald-600"
-            />
-            <StatCard
-              title="Setores"
-              value={stats?.sectors_count || 0}
-              icon={Target}
-              gradient="from-orange-400 to-red-600"
-            />
-          </motion.div>
+          {/* Enriched Stats Sections */}
+          <div className="space-y-8 mb-8">
+            {/* Row 1: Market Intelligence */}
+            <section>
+              <div className="flex items-center gap-2 mb-4 px-1">
+                <div className="w-1 h-6 bg-cyan-500 rounded-full" />
+                <h2 className="text-sm font-bold text-white/70 uppercase tracking-wider flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" /> Inteligência de Mercado
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title="Total de Ações"
+                  value={stats?.total_stocks || 0}
+                  icon={BarChart3}
+                  gradient="from-cyan-400 to-blue-600"
+                  change={filteredStocks.length}
+                  changeLabel="filtradas"
+                />
+                <StatCard
+                  title="Oportunidades"
+                  value={stats?.opportunities_count || 0}
+                  subtitle="Score > 80"
+                  icon={Zap}
+                  gradient="from-yellow-400 to-orange-600"
+                />
+                <StatCard
+                  title="Top Ação"
+                  value={stats?.top_stock || 'N/A'}
+                  subtitle={`Fusion: ${stats?.top_score || 0}`}
+                  icon={Trophy}
+                  gradient="from-green-400 to-emerald-600"
+                />
+                <StatCard
+                  title="Sentimento"
+                  value={stats?.market_sentiment || 'Neutro'}
+                  icon={Sparkles}
+                  gradient="from-blue-400 to-indigo-600"
+                />
+              </div>
+            </section>
+
+            {/* Row 2: Performance & Quality */}
+            <section>
+              <div className="flex items-center gap-2 mb-4 px-1">
+                <div className="w-1 h-6 bg-purple-500 rounded-full" />
+                <h2 className="text-sm font-bold text-white/70 uppercase tracking-wider flex items-center gap-2">
+                  <Activity className="w-4 h-4" /> Performance & Qualidade
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title="Ações Tóxicas"
+                  value={stats?.toxic_count || 0}
+                  subtitle="Score Baixo"
+                  icon={Skull}
+                  gradient="from-red-400 to-rose-600"
+                />
+                <StatCard
+                  title="Score Médio"
+                  value={stats?.avg_super_score?.toFixed(1) || '0'}
+                  icon={Zap}
+                  gradient="from-purple-400 to-pink-600"
+                />
+                <StatCard
+                  title="Setores Ativos"
+                  value={stats?.sectors_count || 0}
+                  icon={PieChart}
+                  gradient="from-orange-400 to-red-600"
+                />
+                <StatCard
+                  title="ROE Médio (Top 10)"
+                  value={`${stats?.avg_roe || 0}%`}
+                  icon={Activity}
+                  gradient="from-indigo-400 to-blue-600"
+                />
+              </div>
+            </section>
+
+            {/* Row 3: Efficiency & Growth */}
+            <section>
+              <div className="flex items-center gap-2 mb-4 px-1">
+                <div className="w-1 h-6 bg-amber-500 rounded-full" />
+                <h2 className="text-sm font-bold text-white/70 uppercase tracking-wider flex items-center gap-2">
+                  <Calculator className="w-4 h-4" /> Eficiência & Valuation
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title="DY Médio (Top 10)"
+                  value={`${stats?.avg_dividend_yield || 0}%`}
+                  icon={Target}
+                  gradient="from-emerald-400 to-teal-600"
+                />
+                <StatCard
+                  title="P/L Médio (Top 10)"
+                  value={stats?.avg_pl || 0}
+                  icon={Calculator}
+                  gradient="from-slate-400 to-gray-600"
+                />
+                <StatCard
+                  title="Setor Líder"
+                  value={stats?.best_sector || 'N/A'}
+                  subtitle="Mais presente no Top 50"
+                  icon={Briefcase}
+                  gradient="from-amber-400 to-yellow-600"
+                />
+                <StatCard
+                  title="Crescimento (5a)"
+                  value={`${stats?.avg_growth || 0}%`}
+                  icon={TrendingUp}
+                  gradient="from-cyan-400 to-emerald-600"
+                />
+              </div>
+            </section>
+          </div>
 
           {/* Tabs */}
           <div className="dashboard-nav">
