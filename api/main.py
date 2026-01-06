@@ -65,31 +65,17 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# CORS for React frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "https://acoes-liart.vercel.app",
-        "https://acoes.vercel.app",
-        "https://acoes.onrender.com"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Middleware for Logging and Performance
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
     
-    # Generate Request ID (simplified)
+    # Generate Request ID
     request_id = str(int(time.time() * 1000))
     structlog.contextvars.bind_contextvars(request_id=request_id)
     
-    logger.info("request_started", path=request.url.path, method=request.method, ip=request.client.host)
+    client_host = request.client.host if request.client else "unknown"
+    logger.info("request_started", path=request.url.path, method=request.method, ip=client_host)
     
     try:
         response = await call_next(request)
@@ -111,17 +97,44 @@ async def log_requests(request: Request, call_next):
             duration=f"{process_time:.4f}s",
             exc_info=True
         )
-        # Re-raise so FastAPI exception handler catches it (or our global one)
         raise e
 
-# Global Exception Handler
+# CORS - Add it LAST to be the OUTERMOST middleware
+# This ensures CORS headers are added even if previous middlewares log or fail
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://acoes-liart.vercel.app",
+        "https://acoes.vercel.app",
+        "https://acoes.onrender.com"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+from fastapi.responses import JSONResponse
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    # If it's an HTTPException, we want to respect its status code and headers
+    if isinstance(exc, HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail},
+            headers=exc.headers
+        )
+    
     logger.error("unhandled_exception", error=str(exc), path=request.url.path, exc_info=True)
-    return {
-        "detail": "Internal Server Error",
-        "message": "Ocorreu um erro inesperado. Nossa equipe foi notificada."
-    }
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal Server Error",
+            "message": "Ocorreu um erro inesperado. Nossa equipe foi notificada."
+        }
+    )
 
 # New Data Service Integration
 # This replaces the old RAM-only cache with Supabase-backed persistence
