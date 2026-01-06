@@ -19,3 +19,4 @@ structlog>=24.1.0
 resend>=0.8.0
 matplotlib>=3.8.0
 qrcode[pil]>=7.0
+tradingview-ta>=3.3.0

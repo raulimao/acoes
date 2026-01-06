@@ -140,19 +140,32 @@ class DailyMonitor:
             if not current_row.empty:
                 row = current_row.iloc[0]
                 if current_price == 0:
-                    current_price = row.get('cotacao', 0)
+                    current_price = row.get('cotacao') or 0
                 if current_score == 0:
-                    current_score = row.get('super_score', 0)
-                current_flags = row.get('red_flags', [])
+                    current_score = row.get('super_score') or 0
+                
+                # Robust flag handling
+                raw_flags = row.get('red_flags')
+                if isinstance(raw_flags, list):
+                    current_flags = raw_flags
+                elif isinstance(raw_flags, str) and raw_flags.strip():
+                    try:
+                        import json
+                        current_flags = json.loads(raw_flags.replace("'", '"'))
+                        if not isinstance(current_flags, list): current_flags = []
+                    except:
+                        current_flags = []
+                else:
+                    current_flags = []
 
             asset_status = {
                 "rank": rank,
                 "ticker": ticker,
-                "sector": old_data.get('sector', old_data.get('setor', 'N/A')),
-                "entry_price": old_data.get('price', old_data.get('cotacao', 0)),
-                "current_price": current_price,
+                "sector": old_data.get('sector') or old_data.get('setor') or 'N/A',
+                "entry_price": old_data.get('price') or old_data.get('cotacao') or 0.0,
+                "current_price": current_price or 0.0,
                 "pnl_pct": 0.0,
-                "current_score": round(current_score, 2),
+                "current_score": round(current_score or 0.0, 2),
                 "status": "OK"
             }
             
