@@ -7,14 +7,15 @@ import {
     AlertTriangle,
     TrendingDown,
     Shield,
-    Eye,
     ChevronRight,
     Flame,
     AlertOctagon,
     Activity,
     RefreshCw,
-    Check
+    Check,
+    TrendingUp
 } from 'lucide-react';
+import StatCard from '../app/components/StatCard';
 
 interface Stock {
     papel: string;
@@ -110,7 +111,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
         if (stock.roe && stock.roe < 0) {
             reasons.push(`ROE negativo (${(stock.roe * 100).toFixed(1)}%)`);
             riskScore += 3;
-        } else if (stock.roe && stock.roe < 5) {
+        } else if (stock.roe && stock.roe < 0.05) {
             reasons.push(`ROE baixo (${(stock.roe * 100).toFixed(1)}%)`);
             riskScore += 1;
         }
@@ -139,7 +140,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
         }
 
         // Check for turnaround potential (some positive signals)
-        if (stock.dividend_yield && stock.dividend_yield > 5) {
+        if (stock.dividend_yield && stock.dividend_yield > 0.05) {
             positiveSignals++;
         }
         if (stock.p_vp && stock.p_vp < 1) {
@@ -155,11 +156,11 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
         }
 
         // Short candidate: critical risk + high P/L or negative ROE
-        const shortCandidate = riskLevel === 'critical' || (stock.p_l && stock.p_l > 50) || (stock.roe && stock.roe < -10);
+        const shortCandidate = riskLevel === 'critical' || (stock.p_l && stock.p_l > 50) || (stock.roe && stock.roe < -0.10);
 
         return {
             riskLevel,
-            reasons: reasons.slice(0, 3),
+            reasons,
             turnaroundPotential: positiveSignals >= 1,
             shortCandidate: !!shortCandidate
         };
@@ -192,8 +193,8 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                     icon: AlertOctagon,
                     label: 'Crítico',
                     color: 'text-red-500',
-                    bgColor: 'bg-red-500/20',
-                    borderColor: 'border-red-500/30',
+                    bgColor: 'bg-red-500/10',
+                    borderColor: 'border-red-500/20',
                     gradient: 'from-red-600 to-red-800'
                 };
             case 'high':
@@ -201,8 +202,8 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                     icon: AlertTriangle,
                     label: 'Alto',
                     color: 'text-orange-500',
-                    bgColor: 'bg-orange-500/20',
-                    borderColor: 'border-orange-500/30',
+                    bgColor: 'bg-orange-500/10',
+                    borderColor: 'border-orange-500/20',
                     gradient: 'from-orange-600 to-orange-800'
                 };
             case 'medium':
@@ -210,28 +211,41 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                     icon: Activity,
                     label: 'Médio',
                     color: 'text-yellow-500',
-                    bgColor: 'bg-yellow-500/20',
-                    borderColor: 'border-yellow-500/30',
+                    bgColor: 'bg-yellow-500/10',
+                    borderColor: 'border-yellow-500/20',
                     gradient: 'from-yellow-600 to-yellow-800'
                 };
         }
     };
 
     return (
-        <div className="mb-8">
-            {/* Header */}
-            <div className="mb-6">
-                <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-600 to-orange-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-                        <Skull className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-bold text-white">Ações Tóxicas</h2>
-                        <p className="text-white/50">Ativos com indicadores de alerta</p>
-                    </div>
-                </div>
+        <div className="space-y-6">
+            {/* Standardized Header Metrics Grid */}
+            <div className="dashboard-stats-grid">
+                <StatCard
+                    title="Ações com Alerta"
+                    value={analyzedStocks.length}
+                    icon={Skull}
+                    gradient="from-red-500 to-rose-700"
+                    tooltip="Ativos com indicadores econômicos negativos ou alto risco operacional."
+                />
+                <StatCard
+                    title="Risco Crítico"
+                    value={analyzedStocks.filter(s => s.analysis.riskLevel === 'critical').length}
+                    icon={AlertTriangle}
+                    gradient="from-orange-500 to-red-600"
+                    valueColor="text-red-400"
+                />
+                <StatCard
+                    title="Candidatas Short"
+                    value={analyzedStocks.filter(s => s.analysis.shortCandidate).length}
+                    icon={TrendingDown}
+                    gradient="from-purple-500 to-indigo-600"
+                />
+            </div>
 
-                {/* Filter Buttons */}
+            {/* Filter Buttons */}
+            <div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {(Object.keys(FILTER_CONFIG) as FilterType[]).map((filterKey) => {
                         const config = FILTER_CONFIG[filterKey];
@@ -267,7 +281,7 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                                     )}
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <p className="text-xs text-white/50">{config.description}</p>
+                                    <p className="text-xs text-secondary">{config.description}</p>
                                     <span className={`text-sm font-bold ${config.color}`}>
                                         {count}
                                     </span>
@@ -278,105 +292,81 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                 </div>
             </div>
 
-            {/* Results count */}
-            <div className="mb-4 text-sm text-white/50">
-                Mostrando {filteredStocks.length} {activeFilter !== 'all' && `de ${analyzedStocks.length}`} ações
-            </div>
-
-            {/* Toxic Stocks Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Results count & Universal Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredStocks.map(({ stock, analysis }, index) => {
                     const riskConfig = getRiskConfig(analysis.riskLevel);
-                    const RiskIcon = riskConfig.icon;
-
                     return (
                         <motion.div
                             key={stock.papel}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                            className={`relative rounded-xl border ${riskConfig.borderColor} bg-gradient-to-br from-slate-800/80 to-slate-900/90 overflow-hidden cursor-pointer group hover:scale-[1.01] transition-transform`}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.03 }}
+                            className="universal-asset-card group toxic-highlight"
                             onClick={() => onSelectStock(stock)}
                         >
-                            {/* Risk Level Bar */}
-                            <div className={`h-1 bg-gradient-to-r ${riskConfig.gradient}`} />
-
-                            <div className="p-4">
-                                <div className="flex items-start justify-between mb-3">
-                                    {/* Stock Info */}
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-lg ${riskConfig.bgColor} flex items-center justify-center`}>
-                                            <Flame className={`w-5 h-5 ${riskConfig.color}`} />
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-white text-lg">{stock.papel}</h3>
-                                            <p className="text-white/40 text-sm">{stock.setor || 'N/A'}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Badges */}
-                                    <div className="flex gap-1">
-                                        <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${riskConfig.bgColor}`}>
-                                            <RiskIcon className={`w-4 h-4 ${riskConfig.color}`} />
-                                            <span className={`text-xs font-bold ${riskConfig.color}`}>{riskConfig.label}</span>
-                                        </div>
+                            {/* Header: Ticker + Risk & Price */}
+                            <div className="flex justify-between items-start mb-1">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="asset-ticker">{stock.papel}</h3>
+                                    <div className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${riskConfig.bgColor} ${riskConfig.color} ${riskConfig.borderColor}`}>
+                                        {riskConfig.label}
                                     </div>
                                 </div>
-
-                                {/* Key Metrics */}
-                                <div className="grid grid-cols-4 gap-2 mb-3">
-                                    <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <p className="text-white/40 text-xs">Cotação</p>
-                                        <p className="text-white font-medium">R$ {stock.cotacao?.toFixed(2) || '0'}</p>
-                                    </div>
-                                    <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <p className="text-white/40 text-xs">P/L</p>
-                                        <p className={`font-medium ${stock.p_l && stock.p_l < 0 ? 'text-red-400' : 'text-white'}`}>
-                                            {stock.p_l?.toFixed(1) || '0'}x
-                                        </p>
-                                    </div>
-                                    <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <p className="text-white/40 text-xs">ROE</p>
-                                        <p className={`font-medium ${stock.roe && stock.roe < 0 ? 'text-red-400' : 'text-white'}`}>
-                                            {stock.roe ? (stock.roe * 100).toFixed(1) : '0'}%
-                                        </p>
-                                    </div>
-                                    <div className="text-center p-2 rounded-lg bg-white/5">
-                                        <p className="text-white/40 text-xs">Score</p>
-                                        <p className="text-orange-400 font-medium">{stock.super_score?.toFixed(1) || '0'}</p>
-                                    </div>
+                                <div className="asset-price">
+                                    R$ {stock.cotacao?.toFixed(2) || '0.00'}
                                 </div>
+                            </div>
 
-                                {/* Alert Reasons */}
-                                <div className="space-y-1 mb-3">
+                            {/* Sector */}
+                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-wider mb-4">
+                                {stock.setor || 'N/A'}
+                            </p>
+
+                            {/* Standardized 3-column Metric Grid */}
+                            <div className="grid grid-cols-3 gap-2 py-4 border-y border-white/5 my-2">
+                                <div className="text-center">
+                                    <p className="card-metric-label">P/L</p>
+                                    <p className={`card-metric-value ${stock.p_l && stock.p_l < 0 ? 'text-red-400' : ''}`}>
+                                        {stock.p_l?.toFixed(1) || '0.0'}
+                                    </p>
+                                </div>
+                                <div className="text-center border-x border-white/5">
+                                    <p className="card-metric-label">DY</p>
+                                    <p className="card-metric-value">
+                                        {stock.dividend_yield ? (stock.dividend_yield * 100).toFixed(1) : '0'}%
+                                    </p>
+                                </div>
+                                <div className="text-center">
+                                    <p className="card-metric-label">ROE</p>
+                                    <p className={`card-metric-value ${stock.roe && stock.roe < 0 ? 'text-red-400' : ''}`}>
+                                        {stock.roe ? (stock.roe * 100).toFixed(1) : '0'}%
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Footer: Compact Alert Tags */}
+                            <div className="flex items-center justify-between mt-3">
+                                <div className="flex flex-wrap items-center gap-1.5">
                                     {analysis.reasons.map((reason, i) => (
-                                        <div key={i} className="flex items-center gap-2 text-sm">
-                                            <AlertTriangle className={`w-3 h-3 ${riskConfig.color} flex-shrink-0`} />
-                                            <span className="text-white/70">{reason}</span>
+                                        <div key={i} className="p-1.5 rounded-lg bg-white/5 text-red-400 border border-white/5" title={reason}>
+                                            <AlertTriangle className="w-3.5 h-3.5" />
                                         </div>
                                     ))}
-                                </div>
-
-                                {/* Tags */}
-                                <div className="flex flex-wrap gap-2">
                                     {analysis.turnaroundPotential && (
-                                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-cyan-500/20 border border-cyan-500/30">
-                                            <RefreshCw className="w-3 h-3 text-cyan-400" />
-                                            <span className="text-xs text-cyan-400 font-medium">Turnaround</span>
+                                        <div className="p-1.5 rounded-lg bg-white/5 text-cyan-400 border border-white/5" title="Potencial Turnaround">
+                                            <RefreshCw className="w-3.5 h-3.5" />
                                         </div>
                                     )}
                                     {analysis.shortCandidate && (
-                                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-purple-500/20 border border-purple-500/30">
-                                            <TrendingDown className="w-3 h-3 text-purple-400" />
-                                            <span className="text-xs text-purple-400 font-medium">Short</span>
+                                        <div className="p-1.5 rounded-lg bg-white/5 text-purple-400 border border-white/5" title="Candidata Short">
+                                            <TrendingDown className="w-3.5 h-3.5" />
                                         </div>
                                     )}
                                 </div>
 
-                                {/* View Details CTA */}
-                                <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span className="text-xs text-white/40">Clique para análise completa</span>
-                                    <ChevronRight className="w-4 h-4 text-white/40" />
+                                <div className="p-2 rounded-lg bg-white/5 text-white/20 group-hover:bg-red-500/10 group-hover:text-red-400 transition-colors">
+                                    <Skull className="w-4 h-4" />
                                 </div>
                             </div>
                         </motion.div>
@@ -389,25 +379,6 @@ export default function ToxicStocks({ stocks, isPremium, onSelectStock }: ToxicS
                     Nenhuma ação encontrada com este filtro.
                 </div>
             )}
-
-            {/* Disclaimer */}
-            <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-6 p-4 rounded-xl bg-white/5 border border-white/10"
-            >
-                <div className="flex items-start gap-3">
-                    <Eye className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
-                    <div>
-                        <p className="text-sm text-white/60">
-                            <span className="font-medium text-white/80">Lembre-se:</span> Ações com indicadores ruins podem estar em momentos
-                            de crise temporária. Algumas se recuperam e geram retornos extraordinários. Faça sua própria análise antes de
-                            qualquer decisão de investimento.
-                        </p>
-                    </div>
-                </div>
-            </motion.div>
         </div>
     );
 }

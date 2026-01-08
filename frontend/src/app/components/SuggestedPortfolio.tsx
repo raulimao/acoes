@@ -112,7 +112,7 @@ export default function SuggestedPortfolio() {
             {/* Floating Button */}
             <motion.button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-24 right-6 z-40"
+                className="fixed bottom-32 sm:bottom-24 right-6 z-40"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 style={{

@@ -23,9 +23,11 @@ import {
   Activity,
   Calculator,
   Briefcase,
+  TrendingDown,
   TrendingUp
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import StatCard from './components/StatCard';
 
 const AIChat = dynamic(() => import('./components/AIChat'), { ssr: false });
 const SuggestedPortfolio = dynamic(() => import('./components/SuggestedPortfolio'), { ssr: false });
@@ -478,7 +480,7 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="dashboard-main">
+        <div className="dashboard-main pt-8">
           {/* Enriched Stats Sections */}
           <div className="space-y-8 mb-8">
             {/* Row 1: Market Intelligence */}
@@ -489,7 +491,7 @@ export default function Dashboard() {
                   <BarChart3 className="w-4 h-4" /> Inteligência de Mercado
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="dashboard-stats-grid">
                 <StatCard
                   title="Total de Ações"
                   value={stats?.total_stocks || 0}
@@ -504,6 +506,7 @@ export default function Dashboard() {
                   subtitle="Score > 80"
                   icon={Zap}
                   gradient="from-yellow-400 to-orange-600"
+                  tooltip="Ações com Super Score acima de 80, indicando forte potencial fundamentalista."
                 />
                 <StatCard
                   title="Top Ação"
@@ -511,12 +514,16 @@ export default function Dashboard() {
                   subtitle={`Fusion: ${stats?.top_score || 0}`}
                   icon={Trophy}
                   gradient="from-green-400 to-emerald-600"
+                  isHighlighted={true}
+                  tooltip="Melhor relação Risco/Retorno baseada no Algoritmo Fusion (Preço x Qualidade)."
                 />
                 <StatCard
                   title="Sentimento"
                   value={stats?.market_sentiment || 'Neutro'}
                   icon={Sparkles}
-                  gradient="from-blue-400 to-indigo-600"
+                  gradient={stats?.market_sentiment?.includes('Bull') || stats?.market_sentiment?.includes('Alta') ? "from-emerald-400 to-teal-600" : stats?.market_sentiment?.includes('Bear') || stats?.market_sentiment?.includes('Baixa') ? "from-red-400 to-rose-600" : "from-slate-400 to-slate-600"}
+                  valueColor={stats?.market_sentiment?.includes('Bull') || stats?.market_sentiment?.includes('Alta') ? "text-emerald-400" : stats?.market_sentiment?.includes('Bear') || stats?.market_sentiment?.includes('Baixa') ? "text-red-400" : "text-slate-400"}
+                  tooltip="Sentimento geral do mercado baseado em indicadores técnicos e volume."
                 />
               </div>
             </section>
@@ -529,13 +536,15 @@ export default function Dashboard() {
                   <Activity className="w-4 h-4" /> Performance & Qualidade
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="dashboard-stats-grid">
                 <StatCard
                   title="Ações Tóxicas"
                   value={stats?.toxic_count || 0}
                   subtitle="Score Baixo"
                   icon={Skull}
                   gradient="from-red-400 to-rose-600"
+                  valueColor="text-red-400"
+                  tooltip="Ações com péssimos fundamentos econômicos ou risco iminente de insolvência."
                 />
                 <StatCard
                   title="Score Médio"
@@ -554,6 +563,7 @@ export default function Dashboard() {
                   value={`${stats?.avg_roe || 0}%`}
                   icon={Activity}
                   gradient="from-indigo-400 to-blue-600"
+                  tooltip="Return on Equity: Eficiência da empresa em gerar lucro sobre o patrimônio."
                 />
               </div>
             </section>
@@ -566,25 +576,28 @@ export default function Dashboard() {
                   <Calculator className="w-4 h-4" /> Eficiência & Valuation
                 </h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="dashboard-stats-grid">
                 <StatCard
                   title="DY Médio (Top 10)"
                   value={`${stats?.avg_dividend_yield || 0}%`}
                   icon={Target}
                   gradient="from-emerald-400 to-teal-600"
+                  tooltip="Dividend Yield: Percentual de proventos pagos em relação ao preço da ação."
                 />
                 <StatCard
                   title="P/L Médio (Top 10)"
                   value={stats?.avg_pl || 0}
                   icon={Calculator}
                   gradient="from-slate-400 to-gray-600"
+                  tooltip="Preço sobre Lucro: Indica quanto o mercado paga por cada real de lucro."
                 />
                 <StatCard
                   title="Setor Líder"
                   value={stats?.best_sector || 'N/A'}
                   subtitle="Mais presente no Top 50"
                   icon={Briefcase}
-                  gradient="from-amber-400 to-yellow-600"
+                  gradient="from-cyan-400 to-blue-600"
+                  tooltip="Setor com maior número de empresas de alta qualidade no momento."
                 />
                 <StatCard
                   title="Crescimento (5a)"
@@ -809,7 +822,7 @@ export default function Dashboard() {
       {/* Floating Battle Button */}
       {
         battleStocks.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-slate-900/90 backdrop-blur-md p-2 pl-6 pr-2 rounded-full border border-yellow-500/30 shadow-2xl shadow-yellow-500/10 animate-in slide-in-from-bottom-10 fade-in duration-300">
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-slate-900/90 backdrop-blur-md p-2 pl-6 pr-2 rounded-full border border-yellow-500/30 shadow-2xl shadow-yellow-500/10 animate-in slide-in-from-bottom-10 fade-in duration-300">
             <div className="flex -space-x-2">
               {battleStocks.map(s => (
                 <div key={s.papel} className="w-8 h-8 rounded-full bg-slate-800 border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold text-white">
@@ -866,47 +879,7 @@ export default function Dashboard() {
 // COMPONENTS
 // ============================================
 
-function StatCard({
-  title,
-  value,
-  subtitle,
-  icon: Icon,
-  gradient,
-  change,
-  changeLabel
-}: {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  icon: React.ElementType;
-  gradient: string;
-  change?: number;
-  changeLabel?: string;
-}) {
-  return (
-    <motion.div
-      className="card card-glow relative overflow-hidden group"
-      whileHover={{ scale: 1.02 }}
-      transition={{ type: 'spring', stiffness: 300 }}
-    >
-      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity`} />
-
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-white/50 text-sm mb-2">{title}</p>
-          <p className="stat-value gradient-text">{value}</p>
-          {subtitle && <p className="text-white/40 text-sm mt-1">{subtitle}</p>}
-          {change !== undefined && (
-            <p className="text-cyan-400 text-sm mt-1">{change} {changeLabel}</p>
-          )}
-        </div>
-        <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center opacity-80`}>
-          <Icon className="w-6 h-6 text-white" />
-        </div>
-      </div>
-    </motion.div>
-  );
-}
+// StatCard has been moved to ./components/StatCard.tsx
 
 
 

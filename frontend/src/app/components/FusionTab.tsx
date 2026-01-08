@@ -9,8 +9,11 @@ import {
     Minus,
     ChevronRight,
     RefreshCcw,
-    Crown
+    Crown,
+    BarChart3,
+    Zap
 } from 'lucide-react';
+import StatCard from './StatCard';
 import StockDetailModal from './StockDetailModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -191,20 +194,31 @@ export default function FusionTab() {
                 </button>
             </div>
 
-            {/* Quick Stats Row */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                    <p className="text-2xl font-bold text-white">{stocks.length}</p>
-                    <p className="text-xs text-slate-500">Ativos Analisados</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                    <p className="text-2xl font-bold text-emerald-400">{topOpportunities}</p>
-                    <p className="text-xs text-slate-500">Oportunidades</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-xl p-4 border border-slate-700/50">
-                    <p className="text-2xl font-bold text-cyan-400">{avgScore}</p>
-                    <p className="text-xs text-slate-500">Score Médio</p>
-                </div>
+            {/* Standardized Header Metrics Grid */}
+            <div className="dashboard-stats-grid">
+                <StatCard
+                    title="Ativos Analisados"
+                    value={stocks.length}
+                    icon={BarChart3}
+                    gradient="from-slate-700 to-slate-800"
+                    tooltip="Quantidade total de ativos monitorados pelo algoritmo Fusion."
+                />
+                <StatCard
+                    title="Oportunidades"
+                    value={topOpportunities}
+                    subtitle="Fusion > 80"
+                    icon={Zap}
+                    gradient="from-emerald-400 to-teal-600"
+                    valueColor="text-emerald-400"
+                    tooltip="Ativos que atendem simultaneamente aos critérios de Qualidade e Preço."
+                />
+                <StatCard
+                    title="Score Médio"
+                    value={avgScore}
+                    icon={Target}
+                    gradient="from-cyan-400 to-blue-600"
+                    tooltip="Média do Algoritmo Fusion para todos os ativos no ranking atual."
+                />
             </div>
 
             {/* Error */}

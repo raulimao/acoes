@@ -107,7 +107,7 @@ export default function AIChat() {
                         style={{
                             position: 'fixed',
                             bottom: '2rem',
-                            right: '2rem',
+                            right: '1.5rem',
                             width: '4rem',
                             height: '4rem',
                             borderRadius: '50%',
