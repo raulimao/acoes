@@ -14,7 +14,8 @@ import {
     Zap
 } from 'lucide-react';
 import StatCard from './StatCard';
-import StockDetailModal from './StockDetailModal';
+import PremiumStockModal from './PremiumStockModal';
+import { useDataCache } from '../contexts/DataCacheContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -119,6 +120,7 @@ export default function FusionTab() {
     const [error, setError] = useState<string | null>(null);
     const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
     const [showModal, setShowModal] = useState(false);
+    const { getCachedData, setCachedData } = useDataCache();
 
     const handleStockClick = (ticker: string) => {
         setSelectedTicker(ticker);
@@ -126,6 +128,14 @@ export default function FusionTab() {
     };
 
     const fetchFusion = async () => {
+        const cacheKey = 'fusion_ranking';
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+            setStocks(cached);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
@@ -134,6 +144,7 @@ export default function FusionTab() {
             });
             if (response.ok) {
                 const data = await response.json();
+                setCachedData(cacheKey, data);
                 setStocks(data);
             } else {
                 setError('Falha ao carregar ranking.');
@@ -411,7 +422,7 @@ export default function FusionTab() {
 
             {/* Stock Detail Modal */}
             {selectedTicker && (
-                <StockDetailModal
+                <PremiumStockModal
                     ticker={selectedTicker}
                     isOpen={showModal}
                     onClose={() => setShowModal(false)}

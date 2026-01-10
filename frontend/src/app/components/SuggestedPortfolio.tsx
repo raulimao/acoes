@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import StockDetailModal from './StockDetailModal';
+import PremiumStockModal from './PremiumStockModal';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -388,7 +388,7 @@ export default function SuggestedPortfolio() {
 
             {/* Detailed Stock Modal */}
             {selectedTicker && (
-                <StockDetailModal
+                <PremiumStockModal
                     ticker={selectedTicker}
                     isOpen={true}
                     onClose={() => setSelectedTicker(null)}

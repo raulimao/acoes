@@ -16,6 +16,8 @@ import {
     BarChart3
 } from 'lucide-react';
 import StatCard from './StatCard';
+import PremiumStockModal from './PremiumStockModal';
+import { useDataCache } from '../contexts/DataCacheContext';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
@@ -52,8 +54,18 @@ export default function MonitorTab() {
     const [data, setData] = useState<MonitorData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
+    const { getCachedData, setCachedData } = useDataCache();
 
     const fetchMonitorData = async () => {
+        const cacheKey = 'monitor_data';
+        const cached = getCachedData(cacheKey);
+        if (cached) {
+            setData(cached);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
@@ -62,6 +74,7 @@ export default function MonitorTab() {
             });
             if (response.ok) {
                 const monitorData = await response.json();
+                setCachedData(cacheKey, monitorData);
                 setData(monitorData);
             } else {
                 setError('Falha ao carregar dados do monitor.');
@@ -196,7 +209,11 @@ export default function MonitorTab() {
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {data.portfolio_assets.map((asset) => (
-                                <tr key={asset.ticker} className="group hover:bg-white/[0.02] transition-colors">
+                                <tr
+                                    key={asset.ticker}
+                                    onClick={() => setSelectedTicker(asset.ticker)}
+                                    className="group hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                >
                                     <td className="px-6 py-4">
                                         <span className="text-xs font-mono text-white/40 group-hover:text-white/60 transition-colors">
                                             #{asset.rank}
@@ -251,6 +268,15 @@ export default function MonitorTab() {
                     </table>
                 </div>
             </div>
+
+            {/* Premium Stock Modal */}
+            {selectedTicker && (
+                <PremiumStockModal
+                    ticker={selectedTicker}
+                    isOpen={true}
+                    onClose={() => setSelectedTicker(null)}
+                />
+            )}
         </motion.div>
     );
 }

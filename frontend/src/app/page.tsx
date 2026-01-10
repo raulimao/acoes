@@ -34,7 +34,7 @@ const SuggestedPortfolio = dynamic(() => import('./components/SuggestedPortfolio
 const StockComparisonModal = dynamic(() => import('../components/StockComparisonModal'), { ssr: false });
 const ToxicStocks = dynamic(() => import('../components/ToxicStocks'), { ssr: false });
 const MonitorTab = dynamic(() => import('./components/MonitorTab'), { ssr: false });
-const StockDetailModal = dynamic(() => import('./components/StockDetailModal'), { ssr: false });
+const PremiumStockModal = dynamic(() => import('./components/PremiumStockModal'), { ssr: false });
 const FusionTab = dynamic(() => import('./components/FusionTab'), { ssr: false });
 // Keeping StockCard as static import for LCP optimization (above fold/critical)
 import StockCard from '../components/StockCard';
@@ -44,6 +44,7 @@ const PremiumFilters = dynamic(() => import('../components/PremiumFilters'), {
 });
 import type { FilterValues } from '../components/PremiumFilters';
 import { useAuth } from './contexts/AuthContext';
+import { useDataCache } from './contexts/DataCacheContext';
 import { useRouter } from 'next/navigation';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -113,6 +114,8 @@ export default function Dashboard() {
 
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+
+  const { getCachedData, setCachedData } = useDataCache();
 
   // Battle Logic
   const [battleStocks, setBattleStocks] = useState<Stock[]>([]);
@@ -226,8 +229,18 @@ export default function Dashboard() {
         // Fetch worst stocks
         endpoint += `&max_score=15&sort_by=super_score&order=asc`;
       } else {
-        // Normal fetching with min score
+        // normal fetching with min score
         endpoint += `&min_score=${minScore}`;
+      }
+
+      // Check Cache
+      const cacheKey = `dashboard_${activeTab}_${isPremium}_${JSON.stringify(premiumFilters)}`;
+      const cached = getCachedData(cacheKey);
+      if (cached) {
+        setStocks(cached.stocks);
+        setStats(cached.stats);
+        setLoading(false);
+        return;
       }
 
       // Apply premium filters if set
@@ -254,6 +267,9 @@ export default function Dashboard() {
         axios.get(endpoint, { signal: controller.signal }),
         axios.get(`${API_URL}/stats`, { signal: controller.signal })
       ]);
+
+      const combinedData = { stocks: stocksRes.data, stats: statsRes.data };
+      setCachedData(cacheKey, combinedData);
       setStocks(stocksRes.data);
       setStats(statsRes.data);
     } catch (error: unknown) {
@@ -778,7 +794,7 @@ export default function Dashboard() {
 
 
       {selectedStock && typeof document !== 'undefined' && createPortal(
-        <StockDetailModal ticker={selectedStock.papel} isOpen={true} onClose={() => setSelectedStock(null)} />,
+        <PremiumStockModal ticker={selectedStock.papel} isOpen={true} onClose={() => setSelectedStock(null)} />,
         document.body
       )
       }
